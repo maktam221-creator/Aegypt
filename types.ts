@@ -28,6 +28,8 @@ export interface Profile {
   gender: string;
   qualification: string;
   country: string;
+  followers?: string[];
+  following?: string[];
 }
 
 export interface EditableProfileData {

@@ -18,7 +18,6 @@ import { onAuthStateChanged, User, signOut, updateProfile } from 'firebase/auth'
 const POSTS_STORAGE_KEY = 'aegypt_posts';
 const PROFILES_STORAGE_KEY = 'aegypt_profiles';
 const AVATAR_STORAGE_KEY_PREFIX = 'aegypt_avatar_';
-const FOLLOWING_STORAGE_KEY_PREFIX = 'aegypt_following_';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -31,7 +30,6 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'home' | 'profile' | 'search'>('home');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [following, setFollowing] = useState<Set<string>>(new Set());
   const [myAvatarUrl, setMyAvatarUrl] = useState('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<Post[]>([]);
@@ -48,7 +46,6 @@ const App: React.FC = () => {
     if (!user) {
       setPosts([]);
       setProfiles({});
-      setFollowing(new Set());
       setMyAvatarUrl('');
       setIsLoading(false);
       return;
@@ -57,7 +54,6 @@ const App: React.FC = () => {
     setIsLoading(true);
 
     const AVATAR_STORAGE_KEY = `${AVATAR_STORAGE_KEY_PREFIX}${user.uid}`;
-    const FOLLOWING_STORAGE_KEY = `${FOLLOWING_STORAGE_KEY_PREFIX}${user.uid}`;
 
     let loadedPosts: Post[] = [];
     const storedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
@@ -104,11 +100,6 @@ const App: React.FC = () => {
     const storedAvatar = localStorage.getItem(AVATAR_STORAGE_KEY);
     setMyAvatarUrl(storedAvatar || `https://picsum.photos/seed/${user.uid}/48`);
 
-    const storedFollowing = localStorage.getItem(FOLLOWING_STORAGE_KEY);
-    if (storedFollowing) {
-      setFollowing(new Set(JSON.parse(storedFollowing)));
-    }
-
     if (loadedPosts.length > 0) {
       setPosts(loadedPosts);
       setProfiles(loadedProfiles);
@@ -139,12 +130,6 @@ const App: React.FC = () => {
       localStorage.setItem(`${AVATAR_STORAGE_KEY_PREFIX}${user.uid}`, myAvatarUrl);
     }
   }, [myAvatarUrl, isLoading, user]);
-
-  useEffect(() => {
-    if (!isLoading && user) {
-      localStorage.setItem(`${FOLLOWING_STORAGE_KEY_PREFIX}${user.uid}`, JSON.stringify(Array.from(following)));
-    }
-  }, [following, isLoading, user]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -273,21 +258,54 @@ const App: React.FC = () => {
   const handleSharePost = (postId: string) => setPosts(currentPosts => currentPosts.map(p => p.id === postId ? { ...p, shares: (p.shares || 0) + 1 } : p));
 
   const handleToggleFollow = (userIdToToggle: string) => {
-    setFollowing(currentFollowing => {
-      const newFollowing = new Set(currentFollowing);
-      const userToFollow = posts.find(p => p.userId === userIdToToggle);
-      const username = userToFollow ? userToFollow.username : 'المستخدم';
+    if (!user) return;
+    const myId = user.uid;
 
-      if (newFollowing.has(userIdToToggle)) {
-        newFollowing.delete(userIdToToggle);
-        showToast(`تم إلغاء متابعة ${username}`);
-      } else {
-        newFollowing.add(userIdToToggle);
-        showToast(`تمت متابعة ${username}`);
-      }
-      return newFollowing;
+    setProfiles(currentProfiles => {
+        const newProfiles = { ...currentProfiles };
+
+        // Get or create profile for current user, ensuring arrays exist
+        const myProfile = { 
+            ...(newProfiles[myId] || { 
+                username: user.displayName || '', 
+                avatarUrl: myAvatarUrl, 
+                gender: '', qualification: '', country: '' 
+            }),
+            followers: newProfiles[myId]?.followers || [],
+            following: newProfiles[myId]?.following || [],
+        };
+        
+        // Get or create profile for target user, ensuring arrays exist
+        const targetUserPost = posts.find(p => p.userId === userIdToToggle);
+        const otherProfile = { 
+            ...(newProfiles[userIdToToggle] || { 
+                username: targetUserPost?.username || 'المستخدم', 
+                avatarUrl: targetUserPost?.avatarUrl || `https://picsum.photos/seed/${userIdToToggle}/48`,
+                gender: '', qualification: '', country: ''
+            }),
+            followers: newProfiles[userIdToToggle]?.followers || [],
+            following: newProfiles[userIdToToggle]?.following || [],
+        };
+
+        const isFollowing = myProfile.following.includes(userIdToToggle);
+
+        if (isFollowing) {
+            myProfile.following = myProfile.following.filter(id => id !== userIdToToggle);
+            otherProfile.followers = otherProfile.followers.filter(id => id !== myId);
+            showToast(`تم إلغاء متابعة ${otherProfile.username}`);
+        } else {
+            myProfile.following.push(userIdToToggle);
+            otherProfile.followers.push(myId);
+            showToast(`تمت متابعة ${otherProfile.username}`);
+        }
+
+        newProfiles[myId] = myProfile;
+        newProfiles[userIdToToggle] = otherProfile;
+
+        return newProfiles;
     });
   };
+
 
   const handleSelectUser = (userId: string) => {
     setSelectedUserId(userId);
@@ -334,6 +352,9 @@ const App: React.FC = () => {
   if (!user) {
     return <AuthPage />;
   }
+  
+  const myCurrentProfile = profiles[user.uid];
+  const followingSet = new Set(myCurrentProfile?.following || []);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
@@ -388,7 +409,7 @@ const App: React.FC = () => {
         )}
 
         {!isLoading && !error && currentView === 'profile' && selectedUserId && (
-          <ProfilePage userId={selectedUserId} myUserId={user.uid} myDisplayName={user.displayName || ''} posts={posts} userProfile={profiles[selectedUserId]} onSelectUser={handleSelectUser} onBack={handleGoHome} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} following={following} onToggleFollow={handleToggleFollow} onAddPost={handleAddPost} myAvatarUrl={myAvatarUrl} onUpdateAvatar={handleUpdateAvatar} onUpdateProfile={handleUpdateProfile} />
+          <ProfilePage userId={selectedUserId} myUserId={user.uid} myDisplayName={user.displayName || ''} posts={posts} userProfile={profiles[selectedUserId]} onSelectUser={handleSelectUser} onBack={handleGoHome} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} following={followingSet} onToggleFollow={handleToggleFollow} onAddPost={handleAddPost} myAvatarUrl={myAvatarUrl} onUpdateAvatar={handleUpdateAvatar} onUpdateProfile={handleUpdateProfile} />
         )}
       </main>
 
