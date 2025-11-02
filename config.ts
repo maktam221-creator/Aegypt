@@ -4,7 +4,7 @@ export const cloudinaryConfig = {
 
   // IMPORTANT: You must create an "unsigned" upload preset in your Cloudinary account settings
   // and name it exactly this for image uploads to work.
-  uploadPreset: 'aegypt_unsigned',
+  uploadPreset: 'dlqxsa8zl',
 };
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 export const firebaseConfig = {
