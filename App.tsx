@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Post, Comment, Profile, EditableProfileData } from './types';
 import { generateSamplePosts } from './services/geminiService';
@@ -14,6 +15,7 @@ import { SearchIcon } from './components/Icons';
 import AuthPage from './components/AuthPage';
 import { auth } from './firebase';
 import { onAuthStateChanged, User, signOut, updateProfile } from 'firebase/auth';
+import UserCard from './components/UserCard';
 
 const POSTS_STORAGE_KEY = 'aegypt_posts';
 const PROFILES_STORAGE_KEY = 'aegypt_profiles';
@@ -32,7 +34,9 @@ const App: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [myAvatarUrl, setMyAvatarUrl] = useState('');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [searchResults, setSearchResults] = useState<Post[]>([]);
+  const [searchPostResults, setSearchPostResults] = useState<Post[]>([]);
+  const [searchUserResults, setSearchUserResults] = useState<(Profile & { id: string })[]>([]);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -84,6 +88,19 @@ const App: React.FC = () => {
       }
     }
 
+    // Ensure the current user has a profile. This makes new users appear in search.
+    if (!loadedProfiles[user.uid]) {
+      loadedProfiles[user.uid] = {
+        username: user.displayName || user.email?.split('@')[0] || 'مستخدم',
+        avatarUrl: `https://picsum.photos/seed/${user.uid}/48`,
+        gender: '',
+        qualification: '',
+        country: '',
+        followers: [],
+        following: [],
+      };
+    }
+
     // Hydrate profiles from posts if they don't exist
     loadedPosts.forEach(post => {
       if (!loadedProfiles[post.userId]) {
@@ -93,14 +110,16 @@ const App: React.FC = () => {
           gender: post.gender || '',
           qualification: post.qualification || '',
           country: post.country || '',
+          followers: [],
+          following: [],
         };
       }
     });
 
     const storedAvatar = localStorage.getItem(AVATAR_STORAGE_KEY);
-    setMyAvatarUrl(storedAvatar || `https://picsum.photos/seed/${user.uid}/48`);
+    setMyAvatarUrl(storedAvatar || loadedProfiles[user.uid]?.avatarUrl || `https://picsum.photos/seed/${user.uid}/48`);
 
-    if (loadedPosts.length > 0) {
+    if (loadedPosts.length > 0 || Object.keys(loadedProfiles).length > 0) {
       setPosts(loadedPosts);
       setProfiles(loadedProfiles);
       setIsLoading(false);
@@ -321,17 +340,29 @@ const App: React.FC = () => {
     setCurrentView('home');
     setSelectedUserId(null);
     setSearchQuery('');
+    setSearchPostResults([]);
+    setSearchUserResults([]);
   };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     if (!query.trim()) {
       setCurrentView('home');
+      setSearchPostResults([]);
+      setSearchUserResults([]);
       return;
     }
     const lowercasedQuery = query.toLowerCase();
-    const results = posts.filter(p => p.content.toLowerCase().includes(lowercasedQuery) || p.username.toLowerCase().includes(lowercasedQuery));
-    setSearchResults(results);
+    
+    const postResults = posts.filter(p => p.content.toLowerCase().includes(lowercasedQuery) || p.username.toLowerCase().includes(lowercasedQuery));
+    setSearchPostResults(postResults);
+
+    // FIX: Add type assertion for Object.entries and a runtime check for profile to fix TS errors.
+    const userResults = (Object.entries(profiles) as [string, Profile][])
+        .filter(([, profile]) => profile && profile.username.toLowerCase().includes(lowercasedQuery))
+        .map(([userId, profile]) => ({...profile, id: userId}));
+    setSearchUserResults(userResults);
+    
     setCurrentView('search');
   };
 
@@ -389,24 +420,45 @@ const App: React.FC = () => {
           </>
         )}
 
-        {!isLoading && !error && currentView === 'search' && (
-          <div>
-            <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">نتائج البحث عن: <span className="text-blue-600">"{searchQuery}"</span></h2>
-            <div className="space-y-6">
-              {searchResults.length > 0 ? (
-                searchResults.map((post) => (
-                  <PostCard key={post.id} post={post} myUserId={user.uid} onSelectUser={handleSelectUser} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} myAvatarUrl={myAvatarUrl} />
-                ))
-              ) : (
-                <div className="text-center text-gray-500 py-10 bg-gray-100 rounded-lg">
-                  <SearchIcon className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-xl font-bold">لم يتم العثور على نتائج</h3>
-                  <p className="mt-2">جرّب البحث عن كلمة أخرى.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {!isLoading && !error && currentView === 'search' && (() => {
+            const filteredUserResults = searchUserResults.filter(p => p.id !== user.uid);
+            return (
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">نتائج البحث عن: <span className="text-blue-600">"{searchQuery}"</span></h2>
+                
+                {filteredUserResults.length > 0 && (
+                    <div className="mb-8">
+                        <h3 className="text-lg font-semibold text-gray-700 mb-4">المستخدمون</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {filteredUserResults.map(userProfile => (
+                                <UserCard key={userProfile.id} userProfile={userProfile} onSelectUser={handleSelectUser} />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {searchPostResults.length > 0 && (
+                    <div>
+                        {filteredUserResults.length > 0 && <h3 className="text-lg font-semibold text-gray-700 mb-4">المنشورات</h3>}
+                        <div className="space-y-6">
+                          {searchPostResults.map((post) => (
+                            <PostCard key={post.id} post={post} myUserId={user.uid} onSelectUser={handleSelectUser} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} myAvatarUrl={myAvatarUrl} />
+                          ))
+                          }
+                        </div>
+                    </div>
+                )}
+
+                {searchPostResults.length === 0 && filteredUserResults.length === 0 && (
+                  <div className="text-center text-gray-500 py-10 bg-gray-100 rounded-lg">
+                    <SearchIcon className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-xl font-bold">لم يتم العثور على نتائج</h3>
+                    <p className="mt-2">جرّب البحث عن كلمة أخرى.</p>
+                  </div>
+                )}
+              </div>
+            );
+        })()}
 
         {!isLoading && !error && currentView === 'profile' && selectedUserId && (
           <ProfilePage userId={selectedUserId} myUserId={user.uid} myDisplayName={user.displayName || ''} posts={posts} userProfile={profiles[selectedUserId]} onSelectUser={handleSelectUser} onBack={handleGoHome} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} following={followingSet} onToggleFollow={handleToggleFollow} onAddPost={handleAddPost} myAvatarUrl={myAvatarUrl} onUpdateAvatar={handleUpdateAvatar} onUpdateProfile={handleUpdateProfile} />
