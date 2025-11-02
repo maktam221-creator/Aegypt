@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Post, Comment } from './types';
+import { Post, Comment, Profile, EditableProfileData } from './types';
 import { generateSamplePosts } from './services/geminiService';
 import Header from './components/Header';
 import PostCard from './components/PostCard';
@@ -16,6 +16,7 @@ import { auth } from './firebase';
 import { onAuthStateChanged, User, signOut, updateProfile } from 'firebase/auth';
 
 const POSTS_STORAGE_KEY = 'aegypt_posts';
+const PROFILES_STORAGE_KEY = 'aegypt_profiles';
 const AVATAR_STORAGE_KEY_PREFIX = 'aegypt_avatar_';
 const FOLLOWING_STORAGE_KEY_PREFIX = 'aegypt_following_';
 
@@ -23,6 +24,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPostForm, setShowPostForm] = useState(false);
@@ -44,36 +46,24 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!user) {
+      setPosts([]);
+      setProfiles({});
+      setFollowing(new Set());
+      setMyAvatarUrl('');
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
+
     const AVATAR_STORAGE_KEY = `${AVATAR_STORAGE_KEY_PREFIX}${user.uid}`;
     const FOLLOWING_STORAGE_KEY = `${FOLLOWING_STORAGE_KEY_PREFIX}${user.uid}`;
 
-    try {
-      const storedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
-      const storedAvatar = localStorage.getItem(AVATAR_STORAGE_KEY);
-      const storedFollowing = localStorage.getItem(FOLLOWING_STORAGE_KEY);
-
-      const loadGeneratedPosts = async () => {
-        try {
-          const samplePosts = await generateSamplePosts();
-          const postsWithTimestamps = samplePosts.map((post, index) => ({
-            ...post,
-            id: `${Date.now()}-${index}`,
-            timestamp: new Date(Date.now() - index * 60000 * 5),
-          }));
-          setPosts(postsWithTimestamps);
-        } catch (err) {
-          console.error('Failed to generate sample posts:', err);
-          setError('حدث خطأ أثناء تحميل المنشورات. الرجاء المحاولة مرة أخرى.');
-        }
-      };
-      
-      if (storedPosts) {
-        const parsedPosts = JSON.parse(storedPosts).map((post: any) => ({
+    let loadedPosts: Post[] = [];
+    const storedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
+    if (storedPosts) {
+      try {
+        loadedPosts = JSON.parse(storedPosts).map((post: any) => ({
           ...post,
           timestamp: new Date(post.timestamp),
           comments: (post.comments || []).map((comment: any) => ({
@@ -81,26 +71,75 @@ const App: React.FC = () => {
             timestamp: new Date(comment.timestamp),
           })),
         }));
-        setPosts(parsedPosts);
-      } else {
-        loadGeneratedPosts();
+      } catch (e) {
+        console.error("Failed to parse posts from localStorage", e);
+        localStorage.removeItem(POSTS_STORAGE_KEY);
       }
+    }
 
-      setMyAvatarUrl(storedAvatar || `https://picsum.photos/seed/${user.uid}/48`);
-      
-      if (storedFollowing) {
-        setFollowing(new Set(JSON.parse(storedFollowing)));
+    const storedProfiles = localStorage.getItem(PROFILES_STORAGE_KEY);
+    let loadedProfiles: Record<string, Profile> = {};
+    if (storedProfiles) {
+      try {
+        loadedProfiles = JSON.parse(storedProfiles);
+      } catch (e) {
+        console.error("Failed to parse profiles from localStorage", e);
+        localStorage.removeItem(PROFILES_STORAGE_KEY);
       }
-    } catch (err) {
-      console.error('Failed to load data from localStorage:', err);
-      setError('حدث خطأ أثناء تحميل بياناتك المحفوظة.');
-      localStorage.removeItem(POSTS_STORAGE_KEY);
-      if(user) {
-        localStorage.removeItem(`${AVATAR_STORAGE_KEY_PREFIX}${user.uid}`);
-        localStorage.removeItem(`${FOLLOWING_STORAGE_KEY_PREFIX}${user.uid}`);
+    }
+
+    // Hydrate profiles from posts if they don't exist
+    loadedPosts.forEach(post => {
+      if (!loadedProfiles[post.userId]) {
+        loadedProfiles[post.userId] = {
+          username: post.username,
+          avatarUrl: post.avatarUrl,
+          gender: post.gender || '',
+          qualification: post.qualification || '',
+          country: post.country || '',
+        };
       }
-    } finally {
+    });
+
+    const storedAvatar = localStorage.getItem(AVATAR_STORAGE_KEY);
+    setMyAvatarUrl(storedAvatar || `https://picsum.photos/seed/${user.uid}/48`);
+
+    const storedFollowing = localStorage.getItem(FOLLOWING_STORAGE_KEY);
+    if (storedFollowing) {
+      setFollowing(new Set(JSON.parse(storedFollowing)));
+    }
+
+    if (loadedPosts.length > 0) {
+      setPosts(loadedPosts);
+      setProfiles(loadedProfiles);
       setIsLoading(false);
+    } else {
+      generateSamplePosts().then(samplePosts => {
+        const postsWithTimestamps: Post[] = samplePosts.map((post, index) => ({
+          ...post,
+          id: `${Date.now()}-${index}`,
+          timestamp: new Date(Date.now() - index * 60000 * 5),
+        }));
+        
+        postsWithTimestamps.forEach(post => {
+          if (!loadedProfiles[post.userId]) {
+            loadedProfiles[post.userId] = {
+              username: post.username,
+              avatarUrl: post.avatarUrl,
+              gender: post.gender || '',
+              qualification: post.qualification || '',
+              country: post.country || '',
+            };
+          }
+        });
+        setPosts(postsWithTimestamps);
+        setProfiles(loadedProfiles);
+      }).catch(err => {
+        console.error('Failed to generate sample posts:', err);
+        setError('حدث خطأ أثناء تحميل المنشورات. الرجاء المحاولة مرة أخرى.');
+      }).finally(() => {
+        setIsLoading(false);
+      });
     }
   }, [user]);
 
@@ -109,6 +148,12 @@ const App: React.FC = () => {
       localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
     }
   }, [posts, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading && Object.keys(profiles).length > 0) {
+      localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+    }
+  }, [profiles, isLoading]);
   
   useEffect(() => {
     if (!isLoading && user) {
@@ -130,6 +175,20 @@ const App: React.FC = () => {
   const handleUpdateAvatar = (newImageUrl: string) => {
     if (!user) return;
     setMyAvatarUrl(newImageUrl);
+    
+    setProfiles(currentProfiles => ({
+        ...currentProfiles,
+        [user.uid]: {
+            ...(currentProfiles[user.uid] || { 
+                username: user.displayName || '', 
+                gender: '', 
+                qualification: '', 
+                country: '' 
+            }),
+            avatarUrl: newImageUrl,
+        }
+    }));
+
     setPosts(currentPosts => 
         currentPosts.map(post => 
             post.userId === user.uid 
@@ -140,23 +199,38 @@ const App: React.FC = () => {
     showToast('تم تحديث صورة ملفك الشخصي بنجاح!');
   };
 
-  const handleUpdateProfile = async (newUsername: string) => {
-    if (!user) return Promise.reject("No user");;
+  const handleUpdateProfile = async (profileData: EditableProfileData) => {
+    if (!user) return Promise.reject("No user");
+
+    const { username, gender, qualification, country } = profileData;
 
     try {
-        await updateProfile(user, {
-            displayName: newUsername
-        });
+        if (username !== user.displayName) {
+            await updateProfile(user, {
+                displayName: username
+            });
+        }
+        
+        setProfiles(currentProfiles => ({
+            ...currentProfiles,
+            [user.uid]: {
+                ...(currentProfiles[user.uid] || { avatarUrl: myAvatarUrl }),
+                username,
+                gender,
+                qualification,
+                country,
+            }
+        }));
         
         setPosts(currentPosts => 
             currentPosts.map(post => {
                 const updatedPost = post.userId === user.uid
-                    ? { ...post, username: newUsername }
+                    ? { ...post, username, gender, qualification, country }
                     : post;
                 
                 const updatedComments = (updatedPost.comments || []).map(comment =>
                     comment.userId === user.uid
-                    ? { ...comment, username: newUsername }
+                    ? { ...comment, username: username }
                     : comment
                 );
 
@@ -175,11 +249,16 @@ const App: React.FC = () => {
 
   const handleAddPost = (content: string, imageUrl: string | null) => {
     if (!user) return;
+    const myProfile = profiles[user.uid];
+
     const newPost: Post = {
       id: Date.now().toString(),
       userId: user.uid,
       username: user.displayName || user.email?.split('@')[0] || 'مستخدم',
       avatarUrl: myAvatarUrl,
+      gender: myProfile?.gender || '',
+      qualification: myProfile?.qualification || '',
+      country: myProfile?.country || '',
       content,
       timestamp: new Date(),
       comments: [],
@@ -262,10 +341,6 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      setPosts([]);
-      setFollowing(new Set());
-      setMyAvatarUrl('');
-      setCurrentView('home');
       showToast("تم تسجيل الخروج بنجاح.");
     } catch (error) {
       console.error("Error signing out: ", error);
@@ -326,7 +401,7 @@ const App: React.FC = () => {
         )}
 
         {!isLoading && !error && currentView === 'profile' && selectedUserId && (
-          <ProfilePage userId={selectedUserId} myUserId={user.uid} posts={posts} onSelectUser={handleSelectUser} onBack={handleGoHome} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} following={following} onToggleFollow={handleToggleFollow} onAddPost={handleAddPost} myAvatarUrl={myAvatarUrl} onUpdateAvatar={handleUpdateAvatar} onUpdateProfile={handleUpdateProfile} />
+          <ProfilePage userId={selectedUserId} myUserId={user.uid} myDisplayName={user.displayName || ''} posts={posts} userProfile={profiles[selectedUserId]} onSelectUser={handleSelectUser} onBack={handleGoHome} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} following={following} onToggleFollow={handleToggleFollow} onAddPost={handleAddPost} myAvatarUrl={myAvatarUrl} onUpdateAvatar={handleUpdateAvatar} onUpdateProfile={handleUpdateProfile} />
         )}
       </main>
 

@@ -11,10 +11,28 @@ export interface Post {
   userId: string;
   username: string;
   avatarUrl: string;
+  gender?: string;
+  qualification?: string;
+  country?: string;
   content: string;
   timestamp: Date;
   imageUrl?: string;
   comments?: Comment[];
   likes?: number;
   shares?: number;
+}
+
+export interface Profile {
+  username: string;
+  avatarUrl: string;
+  gender: string;
+  qualification: string;
+  country: string;
+}
+
+export interface EditableProfileData {
+  username: string;
+  gender: string;
+  qualification: string;
+  country: string;
 }

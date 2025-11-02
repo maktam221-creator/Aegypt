@@ -1,15 +1,17 @@
 
-import React, { useRef, useState } from 'react';
-import { Post } from '../types';
+import React, { useRef, useState, useEffect } from 'react';
+import { Post, EditableProfileData, Profile } from '../types';
 import PostCard from './PostCard';
-import { ArrowRightIcon, CameraIcon, PencilIcon } from './Icons';
+import { ArrowRightIcon, CameraIcon, PencilIcon, AcademicCapIcon, GlobeAltIcon, IdentificationIcon } from './Icons';
 import CreatePostWidget from './CreatePostWidget';
 import { uploadImage } from '../services/imageService';
 
 interface ProfilePageProps {
   userId: string;
   myUserId: string;
+  myDisplayName: string;
   posts: Post[];
+  userProfile?: Profile;
   onSelectUser: (userId:string) => void;
   onBack: () => void;
   onAddComment: (postId: string, commentText: string) => void;
@@ -21,13 +23,15 @@ interface ProfilePageProps {
   onAddPost: (content: string, imageUrl: string | null) => void;
   myAvatarUrl: string;
   onUpdateAvatar: (newImageUrl: string) => void;
-  onUpdateProfile: (newUsername: string) => Promise<void>;
+  onUpdateProfile: (profileData: EditableProfileData) => Promise<void>;
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ 
     userId, 
     myUserId, 
+    myDisplayName,
     posts, 
+    userProfile,
     onSelectUser, 
     onBack, 
     onAddComment, 
@@ -42,24 +46,48 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     onUpdateProfile
 }) => {
   const userPosts = posts.filter(p => p.userId === userId).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  let user: Post | Omit<Post, 'id'| 'content' | 'timestamp'> | undefined = userPosts.length > 0 ? userPosts[0] : posts.find(p => p.userId === userId);
   const isMyProfile = userId === myUserId;
   const isFollowing = following.has(userId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [newUsername, setNewUsername] = useState(user?.username || '');
   const [isSaving, setIsSaving] = useState(false);
-
-  // Special handling for my own profile to ensure it always renders, even without posts
-  if (isMyProfile && !user) {
-    user = {
-        userId: myUserId,
-        username: 'مستخدم جديد', // This will be updated by auth user's display name, but as fallback.
-        avatarUrl: myAvatarUrl,
-    }
+  
+  let userToDisplay: Profile | undefined = userProfile;
+  if (!userToDisplay && userPosts.length > 0) {
+      const p = userPosts[0];
+      userToDisplay = {
+          username: p.username,
+          avatarUrl: p.avatarUrl,
+          gender: p.gender || '',
+          qualification: p.qualification || '',
+          country: p.country || '',
+      };
   }
+  if (!userToDisplay && isMyProfile) {
+      userToDisplay = {
+          username: myDisplayName || 'مستخدم جديد',
+          avatarUrl: myAvatarUrl,
+          gender: '',
+          qualification: '',
+          country: '',
+      };
+  }
+  
+  const [newUsername, setNewUsername] = useState(userToDisplay?.username || '');
+  const [newGender, setNewGender] = useState(userToDisplay?.gender || '');
+  const [newQualification, setNewQualification] = useState(userToDisplay?.qualification || '');
+  const [newCountry, setNewCountry] = useState(userToDisplay?.country || '');
+
+  useEffect(() => {
+    if (userToDisplay && !isEditing) {
+      setNewUsername(userToDisplay.username);
+      setNewGender(userToDisplay.gender || '');
+      setNewQualification(userToDisplay.qualification || '');
+      setNewCountry(userToDisplay.country || '');
+    }
+  }, [userToDisplay, isEditing]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -80,10 +108,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   };
 
   const handleSaveProfile = async () => {
-    if (!user || !newUsername.trim() || newUsername.trim() === user.username) return;
+    if (!userToDisplay || !newUsername.trim()) return;
     setIsSaving(true);
     try {
-        await onUpdateProfile(newUsername.trim());
+        await onUpdateProfile({
+            username: newUsername.trim(),
+            gender: newGender.trim(),
+            qualification: newQualification.trim(),
+            country: newCountry.trim(),
+        });
         setIsEditing(false);
     } catch (error) {
         console.error("Failed to update profile:", error);
@@ -94,12 +127,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    if (user) {
-        setNewUsername(user.username);
+    if (userToDisplay) {
+        setNewUsername(userToDisplay.username);
     }
   };
 
-  if (!user) {
+  if (!userToDisplay) {
     return (
       <div className="text-center py-10">
         <p className="text-gray-600">لم يتم العثور على المستخدم.</p>
@@ -109,6 +142,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       </div>
     );
   }
+
+  const hasChanges = userToDisplay ? (
+    newUsername.trim() !== userToDisplay.username ||
+    newGender.trim() !== (userToDisplay.gender || '') ||
+    newQualification.trim() !== (userToDisplay.qualification || '') ||
+    newCountry.trim() !== (userToDisplay.country || '')
+  ) : false;
 
   return (
     <div>
@@ -122,8 +162,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-8 text-center">
             <div className="relative w-32 h-32 mx-auto mb-4">
                 <img 
-                    src={isMyProfile ? myAvatarUrl.replace('/48', '/128') : user.avatarUrl.replace('/48', '/128')}
-                    alt={user.username}
+                    src={isMyProfile ? myAvatarUrl.replace('/48', '/128') : userToDisplay.avatarUrl.replace('/48', '/128')}
+                    alt={userToDisplay.username}
                     className="w-full h-full rounded-full object-cover border-4 border-white shadow-md"
                 />
                 {isUploadingAvatar && (
@@ -152,23 +192,80 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
             
             {isEditing ? (
-                <input
-                    type="text"
-                    value={newUsername}
-                    onChange={(e) => setNewUsername(e.target.value)}
-                    className="text-3xl font-bold text-gray-800 text-center bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 w-full max-w-xs mx-auto"
-                    autoFocus
-                />
-            ) : (
-                <h2 className="text-3xl font-bold text-gray-800">{user.username}</h2>
-            )}
+              <div className="mt-6 w-full max-w-sm mx-auto space-y-4 text-right">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">اسم المستخدم</label>
+                  <input
+                      type="text"
+                      value={newUsername}
+                      onChange={(e) => setNewUsername(e.target.value)}
+                      className="text-center bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 w-full"
+                      autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">النوع</label>
+                  <input
+                      type="text"
+                      value={newGender}
+                      onChange={(e) => setNewGender(e.target.value)}
+                      className="text-center bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 w-full"
+                      placeholder="مثال: ذكر، أنثى"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">المؤهل الدراسي</label>
+                  <input
+                      type="text"
+                      value={newQualification}
+                      onChange={(e) => setNewQualification(e.target.value)}
+                      className="text-center bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 w-full"
+                      placeholder="مثال: هندسة برمجيات"
+                  />
+                </div>
+                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">الدولة</label>
+                  <input
+                      type="text"
+                      value={newCountry}
+                      onChange={(e) => setNewCountry(e.target.value)}
+                      className="text-center bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 w-full"
+                      placeholder="مثال: مصر"
+                  />
+                </div>
+              </div>
 
-            <p className="text-gray-500 mt-1">@{user.userId.substring(0,8)}...</p>
+            ) : (
+              <>
+                <h2 className="text-3xl font-bold text-gray-800">{userToDisplay.username}</h2>
+                <p className="text-gray-500 mt-1">@{userId.substring(0,12)}...</p>
+
+                <div className="mt-6 border-t border-gray-200 pt-4 max-w-sm mx-auto">
+                    <div className="text-right space-y-3">
+                        <div className="flex items-center">
+                            <IdentificationIcon className="w-6 h-6 text-gray-400 ml-4 flex-shrink-0" />
+                            <span className="font-semibold text-gray-600">النوع:</span>
+                            <span className="mr-2 text-gray-800 truncate">{userToDisplay.gender || 'غير محدد'}</span>
+                        </div>
+                        <div className="flex items-center">
+                            <AcademicCapIcon className="w-6 h-6 text-gray-400 ml-4 flex-shrink-0" />
+                            <span className="font-semibold text-gray-600">المؤهل الدراسي:</span>
+                            <span className="mr-2 text-gray-800 truncate">{userToDisplay.qualification || 'غير محدد'}</span>
+                        </div>
+                        <div className="flex items-center">
+                            <GlobeAltIcon className="w-6 h-6 text-gray-400 ml-4 flex-shrink-0" />
+                            <span className="font-semibold text-gray-600">الدولة:</span>
+                            <span className="mr-2 text-gray-800 truncate">{userToDisplay.country || 'غير محدد'}</span>
+                        </div>
+                    </div>
+                </div>
+              </>
+            )}
 
             {!isMyProfile && (
                 <button 
                     onClick={() => onToggleFollow(userId)}
-                    className={`mt-4 font-semibold px-8 py-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-40 ${
+                    className={`mt-6 font-semibold px-8 py-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-40 ${
                         isFollowing
                             ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
                             : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -179,13 +276,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             )}
 
             {isMyProfile && !isEditing && (
-                <div className="flex justify-center">
+                <div className="flex justify-center mt-6">
                     <button
-                        onClick={() => {
-                            setIsEditing(true);
-                            setNewUsername(user.username);
-                        }}
-                        className="mt-4 font-semibold px-6 py-2 rounded-full transition-colors bg-gray-200 text-gray-800 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2"
+                        onClick={() => setIsEditing(true)}
+                        className="font-semibold px-6 py-2 rounded-full transition-colors bg-gray-200 text-gray-800 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2"
                     >
                         <PencilIcon className="w-5 h-5" />
                         <span>تعديل الملف الشخصي</span>
@@ -193,7 +287,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 </div>
             )}
             {isMyProfile && isEditing && (
-                <div className="mt-4 flex gap-4 justify-center">
+                <div className="mt-6 flex gap-4 justify-center">
                     <button
                         onClick={handleCancelEdit}
                         disabled={isSaving}
@@ -203,7 +297,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                     </button>
                     <button
                         onClick={handleSaveProfile}
-                        disabled={isSaving || !newUsername.trim() || newUsername.trim() === user.username}
+                        disabled={isSaving || !newUsername.trim() || !hasChanges}
                         className="font-semibold px-8 py-2 rounded-full transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed w-32"
                     >
                         {isSaving ? 'جاري الحفظ...' : 'حفظ'}
