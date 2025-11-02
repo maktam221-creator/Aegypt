@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Post, Comment, Profile, EditableProfileData, Notification } from './types';
-import { generateSamplePosts } from './services/geminiService';
 import Header from './components/Header';
 import PostCard from './components/PostCard';
 import PostForm from './components/PostForm';
@@ -41,26 +40,27 @@ const App: React.FC = () => {
   const [searchPostResults, setSearchPostResults] = useState<Post[]>([]);
   const [searchUserResults, setSearchUserResults] = useState<(Profile & { id: string })[]>([]);
   const [showFollowSuggestions, setShowFollowSuggestions] = useState(false);
-  const [hasCheckedSuggestions, setHasCheckedSuggestions] = useState(false);
-  const [isReady, setIsReady] = useState(false);
 
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
-      setHasCheckedSuggestions(false); // Reset check on user change
-      setIsReady(false); // Reset ready state on user change
     });
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
+    if (isAuthLoading) {
+        return;
+    }
+
     if (!user) {
       setPosts([]);
       setProfiles({});
       setNotifications([]);
       setMyAvatarUrl('');
+      setShowFollowSuggestions(false);
       setIsLoading(false);
       return;
     }
@@ -140,7 +140,6 @@ const App: React.FC = () => {
     }
 
     // Re-populate profiles from loaded posts to ensure all posting users are discoverable.
-    // This is safe because posts from non-authenticated users have already been filtered out.
     loadedPosts.forEach(post => {
       if (!loadedProfiles[post.userId]) {
         loadedProfiles[post.userId] = {
@@ -161,36 +160,24 @@ const App: React.FC = () => {
     setPosts(loadedPosts);
     setProfiles(loadedProfiles);
     setNotifications(loadedNotifications);
-    setIsLoading(false);
-
-  }, [user, t]);
-
-  useEffect(() => {
-    // Don't run this logic until the user is authenticated and the initial data load is complete.
-    if (!user || isLoading) return;
-
-    // Once checked, we just need to ensure the app is marked as ready.
-    if (hasCheckedSuggestions) {
-        if (!isReady) setIsReady(true);
-        return;
-    }
 
     const isNewUser = localStorage.getItem('aegypt_is_new_user') === 'true';
-    const myProfile = profiles[user.uid];
+    const myProfile = loadedProfiles[user.uid];
     const hasNotFollowedAnyone = !myProfile || !myProfile.following || myProfile.following.length === 0;
 
     if (isNewUser && hasNotFollowedAnyone) {
-        const otherUsersExist = Object.keys(profiles).filter(id => id !== user.uid).length > 0;
+        const otherUsersExist = Object.keys(loadedProfiles).filter(id => id !== user.uid).length > 0;
         if (otherUsersExist) {
             setShowFollowSuggestions(true);
         }
         localStorage.removeItem('aegypt_is_new_user');
+    } else {
+        setShowFollowSuggestions(false);
     }
+    
+    setIsLoading(false);
 
-    setHasCheckedSuggestions(true);
-    setIsReady(true); // Mark the app as ready to be displayed.
-  }, [user, isLoading, profiles, hasCheckedSuggestions, isReady]);
-
+  }, [user, isAuthLoading, t]);
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -481,18 +468,20 @@ const App: React.FC = () => {
     const lowercasedQuery = query.toLowerCase().trim();
 
     if (!lowercasedQuery) {
+// FIX: Cast `profile` to `Profile` to fix TypeScript errors related to property access and spread operator.
       const allUsers = Object.entries(profiles)
-        .filter(([, profile]) => profile && typeof profile === 'object' && typeof profile.username === 'string')
-        .map(([userId, profile]) => ({...profile, id: userId}));
+        .filter(([, profile]) => profile && typeof profile === 'object' && typeof (profile as Profile).username === 'string')
+        .map(([userId, profile]) => ({...(profile as Profile), id: userId}));
       setSearchUserResults(allUsers);
       setSearchPostResults([]);
     } else {
       const postResults = posts.filter(p => p.content.toLowerCase().includes(lowercasedQuery) || p.username.toLowerCase().includes(lowercasedQuery));
       setSearchPostResults(postResults);
 
+// FIX: Cast `profile` to `Profile` to fix TypeScript errors related to property access and spread operator.
       const userResults = Object.entries(profiles)
-          .filter(([, profile]) => profile && typeof profile === 'object' && typeof profile.username === 'string' && profile.username.toLowerCase().includes(lowercasedQuery))
-          .map(([userId, profile]) => ({...profile, id: userId}));
+          .filter(([, profile]) => profile && typeof profile === 'object' && typeof (profile as Profile).username === 'string' && (profile as Profile).username.toLowerCase().includes(lowercasedQuery))
+          .map(([userId, profile]) => ({...(profile as Profile), id: userId}));
       setSearchUserResults(userResults);
     }
   };
@@ -587,7 +576,7 @@ const App: React.FC = () => {
     }
   };
 
-  if (isAuthLoading || (user && !isReady)) {
+  if (isAuthLoading || isLoading) {
     return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>;
   }
   
@@ -600,7 +589,7 @@ const App: React.FC = () => {
 
   const suggestedUsers = Object.entries(profiles)
     .filter(([userId]) => userId !== user.uid)
-    .map(([id, profile]) => ({ id, ...profile }))
+    .map(([id, profile]) => ({ id, ...(profile as object) }))
     .sort(() => 0.5 - Math.random()) // Shuffle
     .slice(0, 5); // Take up to 5
   
@@ -633,10 +622,9 @@ const App: React.FC = () => {
         onMarkAllRead={handleMarkAllNotificationsAsRead}
       />
       <main className="container mx-auto max-w-2xl px-4 py-8 pb-24">
-        {isLoading && <LoadingSpinner />}
         {error && <div className="text-center text-red-500 bg-red-100 p-4 rounded-lg">{error}</div>}
         
-        {!isLoading && !error && currentView === 'home' && (
+        {currentView === 'home' && (
           <>
             <CreatePostWidget onAddPost={handleAddPost} myAvatarUrl={myAvatarUrl} onShowToast={showToast} />
             {posts.length > 0 ? (
@@ -655,7 +643,7 @@ const App: React.FC = () => {
           </>
         )}
 
-        {!isLoading && !error && currentView === 'notifications' && (
+        {currentView === 'notifications' && (
             <NotificationsPage 
                 notifications={myNotifications}
                 onNotificationClick={handleNotificationClick}
@@ -663,7 +651,7 @@ const App: React.FC = () => {
             />
         )}
 
-        {!isLoading && !error && currentView === 'search' && (() => {
+        {currentView === 'search' && (() => {
             const filteredUserResults = searchUserResults.filter(p => p.id !== user.uid);
             const isSearching = searchQuery.trim().length > 0;
             
@@ -714,22 +702,20 @@ const App: React.FC = () => {
             );
         })()}
 
-        {!isLoading && !error && currentView === 'profile' && selectedUserId && (
+        {currentView === 'profile' && selectedUserId && (
           <ProfilePage userId={selectedUserId} myUserId={user.uid} myDisplayName={user.displayName || ''} posts={posts} userProfile={profiles[selectedUserId]} onSelectUser={handleSelectUser} onBack={handleGoHome} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} following={followingSet} onToggleFollow={handleToggleFollow} onAddPost={handleAddPost} myAvatarUrl={myAvatarUrl} onUpdateAvatar={handleUpdateAvatar} onUpdateProfile={handleUpdateProfile} onDeleteAccount={handleDeleteAccount} />
         )}
       </main>
       
-      {!isLoading && !error && (
-        <BottomNavBar 
-          currentView={currentView}
-          onGoHome={handleGoHome} 
-          onNewPost={() => setShowPostForm(true)} 
-          onGoToProfile={handleGoToMyProfile}
-          onGoToNotifications={handleGoToNotifications}
-          onGoToSearch={handleGoToSearch}
-          unreadNotificationsCount={unreadNotificationsCount}
-        />
-      )}
+      <BottomNavBar 
+        currentView={currentView}
+        onGoHome={handleGoHome} 
+        onNewPost={() => setShowPostForm(true)} 
+        onGoToProfile={handleGoToMyProfile}
+        onGoToNotifications={handleGoToNotifications}
+        onGoToSearch={handleGoToSearch}
+        unreadNotificationsCount={unreadNotificationsCount}
+      />
       
       {showPostForm && <PostForm onAddPost={handleAddPost} onClose={() => setShowPostForm(false)} onShowToast={showToast} />}
 
