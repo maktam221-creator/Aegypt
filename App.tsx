@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect } from 'react';
 import { Post, Comment, Profile, EditableProfileData } from './types';
 import { generateSamplePosts } from './services/geminiService';
@@ -61,6 +59,9 @@ const App: React.FC = () => {
     }
 
     setIsLoading(true);
+    
+    // Heuristic for identifying Firebase UIDs. They are typically 28-character alphanumeric strings.
+    const firebaseUidRegex = /^[a-zA-Z0-9]{28}$/;
 
     const AVATAR_STORAGE_KEY = `${AVATAR_STORAGE_KEY_PREFIX}${user.uid}`;
 
@@ -68,14 +69,18 @@ const App: React.FC = () => {
     const storedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
     if (storedPosts) {
       try {
-        loadedPosts = JSON.parse(storedPosts).map((post: any) => ({
-          ...post,
-          timestamp: new Date(post.timestamp),
-          comments: (post.comments || []).map((comment: any) => ({
-            ...comment,
-            timestamp: new Date(comment.timestamp),
-          })),
-        }));
+        const parsedPosts = JSON.parse(storedPosts);
+        // Filter out posts from non-Firebase UID authors (i.e., old AI-generated posts)
+        loadedPosts = parsedPosts
+          .filter((post: any) => post && typeof post.userId === 'string' && firebaseUidRegex.test(post.userId))
+          .map((post: any) => ({
+            ...post,
+            timestamp: new Date(post.timestamp),
+            comments: (post.comments || []).map((comment: any) => ({
+              ...comment,
+              timestamp: new Date(comment.timestamp),
+            })),
+          }));
       } catch (e) {
         console.error("Failed to parse posts from localStorage", e);
         localStorage.removeItem(POSTS_STORAGE_KEY);
@@ -86,7 +91,13 @@ const App: React.FC = () => {
     let loadedProfiles: Record<string, Profile> = {};
     if (storedProfiles) {
       try {
-        loadedProfiles = JSON.parse(storedProfiles);
+        const parsedProfiles = JSON.parse(storedProfiles);
+        // Filter out profiles from non-Firebase UIDs (i.e., old AI-generated users)
+        Object.keys(parsedProfiles).forEach(userId => {
+          if (firebaseUidRegex.test(userId)) {
+            loadedProfiles[userId] = parsedProfiles[userId];
+          }
+        });
       } catch (e) {
         console.error("Failed to parse profiles from localStorage", e);
         localStorage.removeItem(PROFILES_STORAGE_KEY);
@@ -106,25 +117,13 @@ const App: React.FC = () => {
       };
     }
 
-    // Hydrate profiles from posts if they don't exist
-    loadedPosts.forEach(post => {
-      if (!loadedProfiles[post.userId]) {
-        loadedProfiles[post.userId] = {
-          username: post.username,
-          avatarUrl: post.avatarUrl,
-          gender: post.gender || '',
-          qualification: post.qualification || '',
-          country: post.country || '',
-          followers: [],
-          following: [],
-        };
-      }
-    });
+    // [REMOVED] The following block was removed to prevent re-creating profiles for fake users from any remaining fake posts.
+    // The source of truth for users is now the profiles list, which is populated only by authenticated users.
 
     const storedAvatar = localStorage.getItem(AVATAR_STORAGE_KEY);
     setMyAvatarUrl(storedAvatar || loadedProfiles[user.uid]?.avatarUrl || `https://picsum.photos/seed/${user.uid}/48`);
 
-    if (loadedPosts.length > 0 || Object.keys(loadedProfiles).length > 0) {
+    if (Object.keys(loadedProfiles).length > 0) {
       setPosts(loadedPosts);
       setProfiles(loadedProfiles);
       setIsLoading(false);
@@ -159,6 +158,7 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
+    // Only save if there are actual posts to prevent overwriting with an empty array during loading states
     if (!isLoading && posts.length > 0) {
       localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
     }
@@ -380,7 +380,9 @@ const App: React.FC = () => {
       // FIX: Added a filter to ensure profile is a valid object before spreading.
       // This prevents runtime errors if localStorage contains invalid profile data (e.g., null, undefined, or primitives).
       const allUsers = (Object.entries(profiles) as [string, Profile][])
-        .filter(([, profile]) => profile && typeof profile === 'object')
+        // FIX: Replaced `typeof profile === 'object'` with a check for `profile.username`
+        // to provide a better type guard and fix the spread operator error in the `.map()` call.
+        .filter(([, profile]) => profile && typeof profile.username === 'string')
         .map(([userId, profile]) => ({...profile, id: userId}));
       setSearchUserResults(allUsers);
       setSearchPostResults([]);
