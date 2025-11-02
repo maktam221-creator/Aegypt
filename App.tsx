@@ -42,6 +42,7 @@ const App: React.FC = () => {
   const [searchUserResults, setSearchUserResults] = useState<(Profile & { id: string })[]>([]);
   const [showFollowSuggestions, setShowFollowSuggestions] = useState(false);
   const [hasCheckedSuggestions, setHasCheckedSuggestions] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
 
   useEffect(() => {
@@ -49,6 +50,7 @@ const App: React.FC = () => {
       setUser(currentUser);
       setIsAuthLoading(false);
       setHasCheckedSuggestions(false); // Reset check on user change
+      setIsReady(false); // Reset ready state on user change
     });
     return () => unsubscribe();
   }, []);
@@ -164,23 +166,30 @@ const App: React.FC = () => {
   }, [user, t]);
 
   useEffect(() => {
-    if (user && !isLoading && !hasCheckedSuggestions) {
-        const isNewUser = localStorage.getItem('aegypt_is_new_user') === 'true';
+    // Don't run this logic until the user is authenticated and the initial data load is complete.
+    if (!user || isLoading) return;
 
-        const myProfile = profiles[user.uid];
-        const hasNotFollowedAnyone = !myProfile || !myProfile.following || myProfile.following.length === 0;
-
-        if (isNewUser && hasNotFollowedAnyone) {
-            const otherUsersExist = Object.keys(profiles).filter(id => id !== user.uid).length > 0;
-            if (otherUsersExist) {
-                setShowFollowSuggestions(true);
-            }
-            // Clean up the flag so it doesn't show again
-            localStorage.removeItem('aegypt_is_new_user');
-        }
-        setHasCheckedSuggestions(true); // Mark as checked for this session
+    // Once checked, we just need to ensure the app is marked as ready.
+    if (hasCheckedSuggestions) {
+        if (!isReady) setIsReady(true);
+        return;
     }
-  }, [user, isLoading, profiles, hasCheckedSuggestions]);
+
+    const isNewUser = localStorage.getItem('aegypt_is_new_user') === 'true';
+    const myProfile = profiles[user.uid];
+    const hasNotFollowedAnyone = !myProfile || !myProfile.following || myProfile.following.length === 0;
+
+    if (isNewUser && hasNotFollowedAnyone) {
+        const otherUsersExist = Object.keys(profiles).filter(id => id !== user.uid).length > 0;
+        if (otherUsersExist) {
+            setShowFollowSuggestions(true);
+        }
+        localStorage.removeItem('aegypt_is_new_user');
+    }
+
+    setHasCheckedSuggestions(true);
+    setIsReady(true); // Mark the app as ready to be displayed.
+  }, [user, isLoading, profiles, hasCheckedSuggestions, isReady]);
 
 
   useEffect(() => {
@@ -578,7 +587,7 @@ const App: React.FC = () => {
     }
   };
 
-  if (isAuthLoading) {
+  if (isAuthLoading || (user && !isReady)) {
     return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>;
   }
   
