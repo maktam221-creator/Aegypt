@@ -42,7 +42,7 @@ const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleAddPost = (content: string) => {
+  const handleAddPost = (content: string, imageUrl: string | null) => {
     const newPost: Post = {
       id: Date.now().toString(),
       userId: MY_USER_ID,
@@ -50,6 +50,7 @@ const App: React.FC = () => {
       avatarUrl: `https://picsum.photos/seed/${Date.now()}/48`,
       content,
       timestamp: new Date(),
+      ...(imageUrl && { imageUrl }),
     };
     setPosts([newPost, ...posts]);
     setShowPostForm(false);

@@ -1,19 +1,40 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { PhotoIcon, XCircleIcon } from './Icons';
 
 interface PostFormProps {
-  onAddPost: (content: string) => void;
+  onAddPost: (content: string, imageUrl: string | null) => void;
   onClose: () => void;
 }
 
 const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose }) => {
   const [content, setContent] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    if(fileInputRef.current) {
+        fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (content.trim()) {
-      onAddPost(content.trim());
+    if (content.trim() || imagePreview) {
+      onAddPost(content.trim(), imagePreview);
       setContent('');
+      setImagePreview(null);
     }
   };
 
@@ -29,27 +50,60 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose }) => {
         <h2 className="text-2xl font-bold mb-4 text-gray-800">إنشاء منشور جديد</h2>
         <form onSubmit={handleSubmit}>
           <textarea
-            className="w-full h-40 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
             placeholder="بماذا تفكر؟"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             autoFocus
           ></textarea>
-          <div className="mt-4 flex justify-end space-x-2 space-x-reverse">
-            <button
+
+          {imagePreview && (
+             <div className="mt-4 relative">
+                <img src={imagePreview} alt="معاينة الصورة" className="w-full h-auto rounded-lg max-h-60 object-contain" />
+                <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75 transition-colors"
+                    aria-label="إزالة الصورة"
+                >
+                    <XCircleIcon className="w-6 h-6" />
+                </button>
+             </div>
+          )}
+
+          <div className="mt-4 flex justify-between items-center">
+             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center space-x-2 space-x-reverse p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             >
-              إلغاء
+                <PhotoIcon className="w-6 h-6" />
+                <span className="font-semibold">إضافة صورة</span>
             </button>
-            <button
-              type="submit"
-              disabled={!content.trim()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
-            >
-              نشر
-            </button>
+            <input 
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageChange}
+            />
+
+            <div className="space-x-2 space-x-reverse">
+                <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                إلغاء
+                </button>
+                <button
+                type="submit"
+                disabled={!content.trim() && !imagePreview}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                >
+                نشر
+                </button>
+            </div>
           </div>
         </form>
       </div>

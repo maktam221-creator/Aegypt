@@ -39,10 +39,22 @@ const PostCard: React.FC<PostCardProps> = ({ post, onSelectUser }) => {
           </div>
         </button>
       </div>
-      <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+
+      <p className="text-gray-700 whitespace-pre-wrap leading-relaxed mb-4">
         {post.content}
       </p>
-      <div className="mt-4 pt-4 border-t border-gray-100 flex justify-around text-gray-500">
+
+      {post.imageUrl && (
+        <div className="mb-4 -mx-5 -mt-2">
+          <img 
+            src={post.imageUrl}
+            alt="محتوى المنشور"
+            className="w-full h-auto object-cover max-h-96"
+          />
+        </div>
+      )}
+
+      <div className="pt-4 border-t border-gray-100 flex justify-around text-gray-500">
         <button className="flex items-center space-x-2 space-x-reverse hover:text-red-500 transition-colors p-2 rounded-lg">
           <HeartIcon className="w-6 h-6" />
           <span className="font-semibold">إعجاب</span>

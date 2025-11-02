@@ -5,4 +5,5 @@ export interface Post {
   avatarUrl: string;
   content: string;
   timestamp: Date;
+  imageUrl?: string;
 }
