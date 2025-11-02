@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Post } from '../types';
 import { HeartIcon, ChatBubbleOvalLeftIcon, ArrowUpOnSquareIcon } from './Icons';
 import CommentSection from './CommentSection';
+import { useTranslations } from '../hooks/useTranslations';
+import { formatTimeAgo } from '../utils/time';
 
 interface PostCardProps {
   post: Post;
@@ -15,23 +17,9 @@ interface PostCardProps {
 }
 
 const PostCard: React.FC<PostCardProps> = ({ post, myUserId, onSelectUser, onAddComment, onShowToast, onLikePost, onSharePost, myAvatarUrl }) => {
+  const { t } = useTranslations();
   const [showComments, setShowComments] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
-
-  const timeAgo = (date: Date): string => {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    let interval = seconds / 31536000;
-    if (interval > 1) return `منذ ${Math.floor(interval)} سنوات`;
-    interval = seconds / 2592000;
-    if (interval > 1) return `منذ ${Math.floor(interval)} أشهر`;
-    interval = seconds / 86400;
-    if (interval > 1) return `منذ ${Math.floor(interval)} أيام`;
-    interval = seconds / 3600;
-    if (interval > 1) return `منذ ${Math.floor(interval)} ساعات`;
-    interval = seconds / 60;
-    if (interval > 1) return `منذ ${Math.floor(interval)} دقائق`;
-    return `الآن`;
-  };
 
   const handleLike = () => {
     if (!isLiked) {
@@ -42,7 +30,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, myUserId, onSelectUser, onAdd
 
   const handleShare = async () => {
     const shareData = {
-      title: `منشور من ${post.username}`,
+      title: t('postShareTitle', { username: post.username }),
       text: post.content,
     };
     try {
@@ -64,12 +52,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, myUserId, onSelectUser, onAdd
       // Fallback to clipboard
       try {
         await navigator.clipboard.writeText(post.content);
-        onShowToast('تم نسخ المنشور إلى الحافظة');
+        onShowToast(t('postCopiedToClipboard'));
         onSharePost(post.id);
       } catch (clipErr) {
         console.error('Clipboard write failed:', clipErr);
         // This toast is shown if both share and clipboard fail.
-        onShowToast('فشلت المشاركة والنسخ');
+        onShowToast(t('postShareAndCopyFailed'));
       }
     }
   };
@@ -81,15 +69,15 @@ const PostCard: React.FC<PostCardProps> = ({ post, myUserId, onSelectUser, onAdd
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 transition-shadow hover:shadow-md flex flex-col">
       <div className="flex items-center mb-4">
-        <button onClick={() => onSelectUser(post.userId)} className="flex items-center text-right group">
+        <button onClick={() => onSelectUser(post.userId)} className="flex items-center text-start group">
           <img
             src={post.avatarUrl}
             alt={post.username}
-            className="w-12 h-12 rounded-full object-cover mr-4 ml-0" // RTL margin
+            className="w-12 h-12 rounded-full object-cover me-4"
           />
           <div>
             <p className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{post.username}</p>
-            <p className="text-sm text-gray-500">{timeAgo(post.timestamp)}</p>
+            <p className="text-sm text-gray-500">{formatTimeAgo(post.timestamp, t)}</p>
           </div>
         </button>
       </div>
@@ -102,7 +90,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, myUserId, onSelectUser, onAdd
         <div className="mb-4 -mx-5 -mt-2">
           <img 
             src={post.imageUrl}
-            alt="محتوى المنشور"
+            alt={t('postContentAlt')}
             className="w-full h-auto object-cover max-h-96"
           />
         </div>
@@ -111,24 +99,24 @@ const PostCard: React.FC<PostCardProps> = ({ post, myUserId, onSelectUser, onAdd
       <div className="pt-4 mt-auto border-t border-gray-100 flex justify-around text-gray-500">
         <button
           onClick={handleLike}
-          className={`flex items-center space-x-2 space-x-reverse transition-colors p-2 rounded-lg ${isLiked ? 'text-red-500' : 'hover:text-red-500'}`}
+          className={`flex items-center space-x-2 rtl:space-x-reverse transition-colors p-2 rounded-lg ${isLiked ? 'text-red-500' : 'hover:text-red-500'}`}
         >
           <HeartIcon className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
-          <span className="font-semibold">إعجاب ({post.likes || 0})</span>
+          <span className="font-semibold">{t('like')} ({post.likes || 0})</span>
         </button>
         <button 
           onClick={() => setShowComments(!showComments)}
-          className="flex items-center space-x-2 space-x-reverse hover:text-blue-500 transition-colors p-2 rounded-lg"
+          className="flex items-center space-x-2 rtl:space-x-reverse hover:text-blue-500 transition-colors p-2 rounded-lg"
         >
           <ChatBubbleOvalLeftIcon className="w-6 h-6" />
-          <span className="font-semibold">تعليق ({post.comments?.length || 0})</span>
+          <span className="font-semibold">{t('comment')} ({post.comments?.length || 0})</span>
         </button>
         <button 
           onClick={handleShare}
-          className="flex items-center space-x-2 space-x-reverse hover:text-green-500 transition-colors p-2 rounded-lg"
+          className="flex items-center space-x-2 rtl:space-x-reverse hover:text-green-500 transition-colors p-2 rounded-lg"
         >
           <ArrowUpOnSquareIcon className="w-6 h-6" />
-          <span className="font-semibold">مشاركة ({post.shares || 0})</span>
+          <span className="font-semibold">{t('share')} ({post.shares || 0})</span>
         </button>
       </div>
       {showComments && (

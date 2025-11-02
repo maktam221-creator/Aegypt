@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { Post, Comment, Profile, EditableProfileData } from './types';
 import { generateSamplePosts } from './services/geminiService';
@@ -17,12 +15,14 @@ import { auth } from './firebase';
 import { onAuthStateChanged, User, signOut, updateProfile, deleteUser } from 'firebase/auth';
 import UserCard from './components/UserCard';
 import FollowSuggestions from './components/FollowSuggestions';
+import { useTranslations } from './hooks/useTranslations';
 
 const POSTS_STORAGE_KEY = 'aegypt_posts';
 const PROFILES_STORAGE_KEY = 'aegypt_profiles';
 const AVATAR_STORAGE_KEY_PREFIX = 'aegypt_avatar_';
 
 const App: React.FC = () => {
+  const { t } = useTranslations();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -108,7 +108,7 @@ const App: React.FC = () => {
     // Ensure the current user has a profile. This makes new users appear in search.
     if (!loadedProfiles[user.uid]) {
       loadedProfiles[user.uid] = {
-        username: user.displayName || user.email?.split('@')[0] || 'مستخدم',
+        username: user.displayName || user.email?.split('@')[0] || t('user'),
         avatarUrl: `https://picsum.photos/seed/${user.uid}/48`,
         gender: '',
         qualification: '',
@@ -148,7 +148,7 @@ const App: React.FC = () => {
       setProfiles(loadedProfiles);
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, t]);
 
   useEffect(() => {
     if (user && !isLoading && !hasCheckedSuggestions) {
@@ -171,17 +171,28 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
-    // Only save if there are actual posts to prevent overwriting with an empty array during loading states
-    if (!isLoading && posts.length > 0) {
-      localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
+    // Persist posts to localStorage. If the user is logged in and the posts array
+    // becomes empty (e.g., after deleting the last user), remove the item
+    // from storage to prevent stale data from being loaded on the next session.
+    if (!isLoading && user) {
+      if (posts.length > 0) {
+        localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
+      } else {
+        localStorage.removeItem(POSTS_STORAGE_KEY);
+      }
     }
-  }, [posts, isLoading]);
+  }, [posts, isLoading, user]);
 
   useEffect(() => {
-    if (!isLoading && Object.keys(profiles).length > 0) {
-      localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+    // Persist profiles to localStorage. This works similarly to the posts persistence logic.
+    if (!isLoading && user) {
+      if (Object.keys(profiles).length > 0) {
+        localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+      } else {
+        localStorage.removeItem(PROFILES_STORAGE_KEY);
+      }
     }
-  }, [profiles, isLoading]);
+  }, [profiles, isLoading, user]);
   
   useEffect(() => {
     if (!isLoading && user) {
@@ -218,7 +229,7 @@ const App: React.FC = () => {
             : post
         )
     );
-    showToast('تم تحديث صورة ملفك الشخصي بنجاح!');
+    showToast(t('avatarUpdatedSuccess'));
   };
 
   const handleUpdateProfile = async (profileData: EditableProfileData) => {
@@ -260,10 +271,10 @@ const App: React.FC = () => {
             })
         );
         
-        showToast('تم تحديث ملفك الشخصي بنجاح!');
+        showToast(t('profileUpdatedSuccess'));
     } catch (error) {
         console.error("Error updating profile: ", error);
-        showToast("حدث خطأ أثناء تحديث الملف الشخصي.");
+        showToast(t('profileUpdateError'));
         throw error; // Re-throw to be caught in ProfilePage if needed for UI state
     }
   };
@@ -276,7 +287,7 @@ const App: React.FC = () => {
     const newPost: Post = {
       id: Date.now().toString(),
       userId: user.uid,
-      username: user.displayName || user.email?.split('@')[0] || 'مستخدم',
+      username: user.displayName || user.email?.split('@')[0] || t('user'),
       avatarUrl: myAvatarUrl,
       gender: myProfile?.gender || '',
       qualification: myProfile?.qualification || '',
@@ -290,7 +301,7 @@ const App: React.FC = () => {
     };
     setPosts([newPost, ...posts]);
     setShowPostForm(false);
-    showToast('تم نشر منشورك بنجاح!');
+    showToast(t('postAddedSuccess'));
   };
   
   const handleAddComment = (postId: string, commentText: string) => {
@@ -301,7 +312,7 @@ const App: React.FC = () => {
           const newComment: Comment = {
             id: Date.now().toString(),
             userId: user.uid,
-            username: user.displayName || user.email?.split('@')[0] || 'مستخدم',
+            username: user.displayName || user.email?.split('@')[0] || t('user'),
             text: commentText,
             timestamp: new Date(),
           };
@@ -337,7 +348,7 @@ const App: React.FC = () => {
         const targetUserPost = posts.find(p => p.userId === userIdToToggle);
         const otherProfile = { 
             ...(newProfiles[userIdToToggle] || { 
-                username: targetUserPost?.username || 'المستخدم', 
+                username: targetUserPost?.username || t('user'), 
                 avatarUrl: targetUserPost?.avatarUrl || `https://picsum.photos/seed/${userIdToToggle}/48`,
                 gender: '', qualification: '', country: ''
             }),
@@ -350,11 +361,11 @@ const App: React.FC = () => {
         if (isFollowing) {
             myProfile.following = myProfile.following.filter(id => id !== userIdToToggle);
             otherProfile.followers = otherProfile.followers.filter(id => id !== myId);
-            showToast(`تم إلغاء متابعة ${otherProfile.username}`);
+            showToast(t('unfollowedUser', { username: otherProfile.username }));
         } else {
             myProfile.following.push(userIdToToggle);
             otherProfile.followers.push(myId);
-            showToast(`تمت متابعة ${otherProfile.username}`);
+            showToast(t('followedUser', { username: otherProfile.username }));
         }
 
         newProfiles[myId] = myProfile;
@@ -414,10 +425,10 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      showToast("تم تسجيل الخروج بنجاح.");
+      showToast(t('logoutSuccess'));
     } catch (error) {
       console.error("Error signing out: ", error);
-      showToast("حدث خطأ أثناء تسجيل الخروج.");
+      showToast(t('logoutError'));
     }
   };
 
@@ -425,13 +436,14 @@ const App: React.FC = () => {
     if (!user) return;
     const userToDelete = auth.currentUser;
     if (!userToDelete) {
-      showToast("لا يمكن إتمام العملية. يرجى تسجيل الدخول مرة أخرى.");
+      showToast(t('deleteAccountRelogin'));
       await signOut(auth);
       return;
     }
   
     const userId = userToDelete.uid;
   
+    // Update state. The corresponding useEffect hooks will handle cleaning up localStorage.
     setPosts(currentPosts => {
       const postsWithoutUser = currentPosts.filter(p => p.userId !== userId);
       return postsWithoutUser.map(post => ({
@@ -458,18 +470,21 @@ const App: React.FC = () => {
       return newProfiles;
     });
 
+    // Clean up any other user-specific data from localStorage.
     localStorage.removeItem(`${AVATAR_STORAGE_KEY_PREFIX}${userId}`);
+    localStorage.removeItem('aegypt_is_new_user');
   
     try {
       await deleteUser(userToDelete);
-      showToast("تم حذف حسابك بنجاح.");
+      showToast(t('deleteAccountSuccess'));
+      // The onAuthStateChanged listener will handle the user state change and redirect.
     } catch (error: any) {
       console.error("Error deleting user from Firebase:", error);
-      await signOut(auth);
+      await signOut(auth); // Force sign out on error
       if (error.code === 'auth/requires-recent-login') {
-        showToast("تم حذف بياناتك من التطبيق. لحذف الحساب نهائياً، أعد تسجيل الدخول ثم حاول مرة أخرى.");
+        showToast(t('deleteAccountRequiresRelogin'));
       } else {
-        showToast("تم تسجيل خروجك. حدث خطأ أثناء الحذف النهائي للحساب.");
+        showToast(t('deleteAccountError'));
       }
     }
   };
@@ -527,9 +542,9 @@ const App: React.FC = () => {
               </div>
             ) : (
                 <div className="text-center text-gray-500 py-16 mt-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-                    <h3 className="text-2xl font-bold text-gray-800">مرحباً بك في Aegypt!</h3>
-                    <p className="mt-2">يبدو أن الساحة هادئة...</p>
-                    <p className="mt-1">كن أول من يشارك أفكاره ويبدأ النقاش!</p>
+                    <h3 className="text-2xl font-bold text-gray-800">{t('welcomeTitle')}</h3>
+                    <p className="mt-2">{t('welcomeSubtitle')}</p>
+                    <p className="mt-1">{t('welcomeCallToAction')}</p>
                 </div>
             )}
           </>
@@ -543,14 +558,14 @@ const App: React.FC = () => {
               <div>
                 <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
                   {isSearching 
-                    ? <>نتائج البحث عن: <span className="text-blue-600">"{searchQuery}"</span></>
-                    : 'اكتشف المستخدمين'
+                    ? <>{t('searchResultsFor')} <span className="text-blue-600">"{searchQuery}"</span></>
+                    : t('discoverUsers')
                   }
                 </h2>
                 
                 {filteredUserResults.length > 0 && (
                     <div className="mb-8">
-                        <h3 className="text-lg font-semibold text-gray-700 mb-4">المستخدمون</h3>
+                        <h3 className="text-lg font-semibold text-gray-700 mb-4">{t('users')}</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {filteredUserResults.map(userProfile => (
                                 <UserCard key={userProfile.id} userProfile={userProfile} onSelectUser={handleSelectUser} />
@@ -561,7 +576,7 @@ const App: React.FC = () => {
 
                 {isSearching && searchPostResults.length > 0 && (
                     <div>
-                        {filteredUserResults.length > 0 && <h3 className="text-lg font-semibold text-gray-700 mb-4">المنشورات</h3>}
+                        {filteredUserResults.length > 0 && <h3 className="text-lg font-semibold text-gray-700 mb-4">{t('posts')}</h3>}
                         <div className="space-y-6">
                           {searchPostResults.map((post) => (
                             <PostCard key={post.id} post={post} myUserId={user.uid} onSelectUser={handleSelectUser} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} myAvatarUrl={myAvatarUrl} />
@@ -575,10 +590,10 @@ const App: React.FC = () => {
                   <div className="text-center text-gray-500 py-10 bg-gray-100 rounded-lg">
                     <SearchIcon className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                     <h3 className="text-xl font-bold">
-                      {isSearching ? 'لم يتم العثور على نتائج' : 'لا يوجد مستخدمون آخرون للعرض'}
+                      {isSearching ? t('noResultsFound') : t('noOtherUsers')}
                     </h3>
                     <p className="mt-2">
-                      {isSearching ? 'جرّب البحث عن كلمة أخرى.' : 'عندما يقوم مستخدمون جدد بالتسجيل، سيظهرون هنا.'}
+                      {isSearching ? t('tryDifferentQuery') : t('newUsersWillAppearHere')}
                     </p>
                   </div>
                 )}
@@ -595,6 +610,7 @@ const App: React.FC = () => {
         <BottomNavBar onGoHome={handleGoHome} onNewPost={() => setShowPostForm(true)} onGoToProfile={handleGoToMyProfile} />
       )}
       
+      {/* FIX: Corrected typo from `showPost-form` to `showPostForm` */}
       {showPostForm && <PostForm onAddPost={handleAddPost} onClose={() => setShowPostForm(false)} onShowToast={showToast} />}
 
       <Toast message={toastMessage} />

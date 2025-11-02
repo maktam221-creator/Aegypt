@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { auth } from '../firebase';
 import { 
@@ -6,8 +5,10 @@ import {
   signInWithEmailAndPassword,
   updateProfile
 } from 'firebase/auth';
+import { useTranslations } from '../hooks/useTranslations';
 
 const AuthPage: React.FC = () => {
+  const { t } = useTranslations();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,7 +22,7 @@ const AuthPage: React.FC = () => {
     setIsLoading(true);
 
     if (!isLogin && !username.trim()) {
-        setError('الرجاء إدخال اسم مستخدم.');
+        setError(t('errorUsernameRequired'));
         setIsLoading(false);
         return;
     }
@@ -44,21 +45,21 @@ const AuthPage: React.FC = () => {
       console.error("Firebase Auth Error:", err.code);
       switch (err.code) {
         case 'auth/invalid-email':
-          setError('البريد الإلكتروني غير صالح.');
+          setError(t('errorInvalidEmail'));
           break;
         case 'auth/user-not-found':
         case 'auth/wrong-password':
         case 'auth/invalid-credential':
-          setError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
+          setError(t('errorInvalidCredentials'));
           break;
         case 'auth/email-already-in-use':
-          setError('هذا البريد الإلكتروني مسجل بالفعل.');
+          setError(t('errorEmailInUse'));
           break;
         case 'auth/weak-password':
-          setError('يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.');
+          setError(t('errorWeakPassword'));
           break;
         default:
-          setError('حدث خطأ. الرجاء المحاولة مرة أخرى.');
+          setError(t('errorGeneric'));
       }
     } finally {
       setIsLoading(false);
@@ -72,14 +73,14 @@ const AuthPage: React.FC = () => {
           <h1 className="text-4xl font-bold text-blue-600 mb-2">
             Aegypt
           </h1>
-          <p className="text-gray-600">{isLogin ? 'سجل الدخول للمتابعة' : 'أنشئ حسابًا جديدًا'}</p>
+          <p className="text-gray-600">{isLogin ? t('loginToContinue') : t('createNewAccount')}</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           {!isLogin && (
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 text-right">
-                اسم المستخدم
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 text-start">
+                {t('username')}
               </label>
               <div className="mt-1">
                 <input
@@ -96,8 +97,8 @@ const AuthPage: React.FC = () => {
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 text-right">
-              البريد الإلكتروني
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 text-start">
+              {t('email')}
             </label>
             <div className="mt-1">
               <input
@@ -114,8 +115,8 @@ const AuthPage: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 text-right">
-              كلمة المرور
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 text-start">
+              {t('password')}
             </label>
             <div className="mt-1">
               <input
@@ -139,14 +140,14 @@ const AuthPage: React.FC = () => {
               disabled={isLoading}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
             >
-              {isLoading ? 'جاري التحميل...' : (isLogin ? 'تسجيل الدخول' : 'إنشاء حساب')}
+              {isLoading ? t('loading') : (isLogin ? t('login') : t('createAccount'))}
             </button>
           </div>
         </form>
 
         <div className="mt-6 text-center">
           <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="text-sm text-blue-600 hover:underline">
-            {isLogin ? 'ليس لديك حساب؟ أنشئ واحدًا' : 'لديك حساب بالفعل؟ سجل الدخول'}
+            {isLogin ? t('noAccountPrompt') : t('hasAccountPrompt')}
           </button>
         </div>
       </div>

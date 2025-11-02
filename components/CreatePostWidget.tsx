@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { PhotoIcon, XCircleIcon } from './Icons';
 import { uploadImage } from '../services/imageService';
+import { useTranslations } from '../hooks/useTranslations';
 
 interface CreatePostWidgetProps {
   onAddPost: (content: string, imageUrl: string | null) => void;
@@ -9,6 +10,7 @@ interface CreatePostWidgetProps {
 }
 
 const CreatePostWidget: React.FC<CreatePostWidgetProps> = ({ onAddPost, myAvatarUrl, onShowToast }) => {
+  const { t } = useTranslations();
   const [content, setContent] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -59,7 +61,7 @@ const CreatePostWidget: React.FC<CreatePostWidgetProps> = ({ onAddPost, myAvatar
         }
     } catch (error) {
         console.error("Image upload failed:", error);
-        onShowToast('فشل رفع الصورة. الرجاء المحاولة مرة أخرى.');
+        onShowToast(t('imageUploadFailed'));
     } finally {
         setIsUploading(false);
     }
@@ -68,15 +70,15 @@ const CreatePostWidget: React.FC<CreatePostWidgetProps> = ({ onAddPost, myAvatar
   return (
     <div className="hidden sm:block bg-white border border-gray-200 rounded-xl shadow-sm p-4 mb-6">
       <form onSubmit={handleSubmit}>
-        <div className="flex items-start space-x-3 space-x-reverse">
+        <div className="flex items-start space-x-3 rtl:space-x-reverse">
           <img
             src={myAvatarUrl}
-            alt="مستخدم جديد"
+            alt={t('currentUserAlt')}
             className="w-12 h-12 rounded-full object-cover"
           />
           <textarea
             className="w-full min-h-[50px] p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
-            placeholder="بماذا تفكر؟"
+            placeholder={t('postPlaceholder')}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onInput={(e) => {
@@ -88,28 +90,28 @@ const CreatePostWidget: React.FC<CreatePostWidgetProps> = ({ onAddPost, myAvatar
         </div>
 
         {imagePreview && (
-          <div className="mt-4 ml-16 relative">
-            <img src={imagePreview} alt="معاينة الصورة" className="w-full h-auto rounded-lg max-h-80 object-contain" />
+          <div className="mt-4 ms-16 relative">
+            <img src={imagePreview} alt={t('imagePreviewAlt')} className="w-full h-auto rounded-lg max-h-80 object-contain" />
             <button
               type="button"
               onClick={handleRemoveImage}
-              className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75 transition-colors"
-              aria-label="إزالة الصورة"
+              className="absolute top-2 end-2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75 transition-colors"
+              aria-label={t('removeImageAria')}
             >
               <XCircleIcon className="w-6 h-6" />
             </button>
           </div>
         )}
 
-        <div className="mt-4 ml-16 flex justify-between items-center">
+        <div className="mt-4 ms-16 flex justify-between items-center">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center space-x-2 space-x-reverse p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            className="flex items-center space-x-2 rtl:space-x-reverse p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             disabled={isUploading}
           >
             <PhotoIcon className="w-6 h-6" />
-            <span className="font-semibold">إضافة صورة</span>
+            <span className="font-semibold">{t('addImage')}</span>
           </button>
           <input
             type="file"
@@ -124,7 +126,7 @@ const CreatePostWidget: React.FC<CreatePostWidgetProps> = ({ onAddPost, myAvatar
             disabled={(!content.trim() && !imagePreview) || isUploading}
             className="px-8 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed w-28 text-center"
           >
-            {isUploading ? 'جاري النشر...' : 'نشر'}
+            {isUploading ? t('publishing') : t('publish')}
           </button>
         </div>
       </form>

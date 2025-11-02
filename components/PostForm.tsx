@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { PhotoIcon, XCircleIcon } from './Icons';
 import { uploadImage } from '../services/imageService';
+import { useTranslations } from '../hooks/useTranslations';
 
 interface PostFormProps {
   onAddPost: (content: string, imageUrl: string | null) => void;
@@ -9,6 +10,7 @@ interface PostFormProps {
 }
 
 const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) => {
+  const { t } = useTranslations();
   const [content, setContent] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -52,7 +54,7 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
         // Resetting the form is now handled by the parent, since it closes the modal
     } catch (error) {
         console.error("Image upload failed:", error);
-        onShowToast('فشل رفع الصورة. الرجاء المحاولة مرة أخرى.');
+        onShowToast(t('imageUploadFailed'));
     } finally {
         setIsUploading(false);
     }
@@ -67,11 +69,11 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
         className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">إنشاء منشور جديد</h2>
+        <h2 className="text-2xl font-bold mb-4 text-gray-800">{t('createNewPost')}</h2>
         <form onSubmit={handleSubmit}>
           <textarea
             className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-            placeholder="بماذا تفكر؟"
+            placeholder={t('postPlaceholder')}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             autoFocus
@@ -79,12 +81,12 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
 
           {imagePreview && (
              <div className="mt-4 relative">
-                <img src={imagePreview} alt="معاينة الصورة" className="w-full h-auto rounded-lg max-h-60 object-contain" />
+                <img src={imagePreview} alt={t('imagePreviewAlt')} className="w-full h-auto rounded-lg max-h-60 object-contain" />
                 <button
                     type="button"
                     onClick={handleRemoveImage}
-                    className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75 transition-colors"
-                    aria-label="إزالة الصورة"
+                    className="absolute top-2 end-2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75 transition-colors"
+                    aria-label={t('removeImageAria')}
                 >
                     <XCircleIcon className="w-6 h-6" />
                 </button>
@@ -95,11 +97,11 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
              <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center space-x-2 space-x-reverse p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="flex items-center space-x-2 rtl:space-x-reverse p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               disabled={isUploading}
             >
                 <PhotoIcon className="w-6 h-6" />
-                <span className="font-semibold">إضافة صورة</span>
+                <span className="font-semibold">{t('addImage')}</span>
             </button>
             <input 
                 type="file"
@@ -109,21 +111,21 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
                 onChange={handleImageChange}
             />
 
-            <div className="space-x-2 space-x-reverse">
+            <div className="space-x-2 rtl:space-x-reverse">
                 <button
                 type="button"
                 onClick={onClose}
                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
                 disabled={isUploading}
                 >
-                إلغاء
+                {t('cancel')}
                 </button>
                 <button
                 type="submit"
                 disabled={(!content.trim() && !imagePreview) || isUploading}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed w-24"
                 >
-                {isUploading ? 'جاري النشر...' : 'نشر'}
+                {isUploading ? t('publishing') : t('publish')}
                 </button>
             </div>
           </div>

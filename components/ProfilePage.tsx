@@ -1,5 +1,3 @@
-
-
 import React, { useRef, useState, useEffect } from 'react';
 import { Post, EditableProfileData, Profile } from '../types';
 import PostCard from './PostCard';
@@ -7,6 +5,7 @@ import { ArrowRightIcon, CameraIcon, PencilIcon, AcademicCapIcon, GlobeAltIcon, 
 import CreatePostWidget from './CreatePostWidget';
 import { uploadImage } from '../services/imageService';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import { useTranslations } from '../hooks/useTranslations';
 
 interface ProfilePageProps {
   userId: string;
@@ -49,6 +48,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     onUpdateProfile,
     onDeleteAccount
 }) => {
+  const { t } = useTranslations();
   const userPosts = posts.filter(p => p.userId === userId).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   const isMyProfile = userId === myUserId;
   const isFollowing = following.has(userId);
@@ -74,7 +74,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   }
   if (!userToDisplay && isMyProfile) {
       userToDisplay = {
-          username: myDisplayName || 'مستخدم جديد',
+          username: myDisplayName || t('newUser'),
           avatarUrl: myAvatarUrl,
           gender: '',
           qualification: '',
@@ -104,7 +104,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             const newImageUrl = await uploadImage(file);
             onUpdateAvatar(newImageUrl);
         } catch(error) {
-            onShowToast('فشل تحديث الصورة. الرجاء المحاولة مرة أخرى.');
+            onShowToast(t('imageUpdateFailed'));
         } finally {
             setIsUploadingAvatar(false);
             if (fileInputRef.current) {
@@ -146,7 +146,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       // No need to close modal or set loading, as the component will unmount on logout.
     } catch (error) {
       console.error("Failed to delete account:", error);
-      onShowToast("حدث خطأ أثناء حذف الحساب.");
+      onShowToast(t('deleteAccountError'));
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
     }
@@ -155,9 +155,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   if (!userToDisplay) {
     return (
       <div className="text-center py-10">
-        <p className="text-gray-600">لم يتم العثور على المستخدم.</p>
+        <p className="text-gray-600">{t('userNotFound')}</p>
         <button onClick={onBack} className="text-blue-600 hover:underline mt-4 font-semibold">
-          العودة إلى الصفحة الرئيسية
+          {t('backToHome')}
         </button>
       </div>
     );
@@ -174,8 +174,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     <div>
         <div className="mb-6">
             <button onClick={onBack} className="inline-flex items-center text-blue-600 hover:underline font-semibold">
-                <ArrowRightIcon className="w-5 h-5 ml-2" />
-                <span>العودة</span>
+                <ArrowRightIcon className="w-5 h-5 me-2" />
+                <span>{t('back')}</span>
             </button>
         </div>
         
@@ -204,8 +204,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                             />
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="absolute bottom-1 right-1 bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 ring-white ring-offset-2 ring-offset-blue-600"
-                                aria-label="تغيير الصورة الشخصية"
+                                className="absolute bottom-1 end-1 bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 ring-white ring-offset-2 ring-offset-blue-600"
+                                aria-label={t('changeProfilePictureAria')}
                             >
                                 <CameraIcon className="w-5 h-5" />
                             </button>
@@ -214,9 +214,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 </div>
                 
                 {isEditing ? (
-                <div className="mt-6 w-full max-w-sm mx-auto space-y-4 text-right">
+                <div className="mt-6 w-full max-w-sm mx-auto space-y-4 text-start">
                     <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">اسم المستخدم</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('username')}</label>
                     <input
                         type="text"
                         value={newUsername}
@@ -226,33 +226,33 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                     />
                     </div>
                     <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">النوع</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('gender')}</label>
                     <input
                         type="text"
                         value={newGender}
                         onChange={(e) => setNewGender(e.target.value)}
                         className="text-center bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 w-full"
-                        placeholder="مثال: ذكر، أنثى"
+                        placeholder={t('genderPlaceholder')}
                     />
                     </div>
                     <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">المؤهل الدراسي</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('qualification')}</label>
                     <input
                         type="text"
                         value={newQualification}
                         onChange={(e) => setNewQualification(e.target.value)}
                         className="text-center bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 w-full"
-                        placeholder="مثال: هندسة برمجيات"
+                        placeholder={t('qualificationPlaceholder')}
                     />
                     </div>
                     <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">الدولة</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('country')}</label>
                     <input
                         type="text"
                         value={newCountry}
                         onChange={(e) => setNewCountry(e.target.value)}
                         className="text-center bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 w-full"
-                        placeholder="مثال: مصر"
+                        placeholder={t('countryPlaceholder')}
                     />
                     </div>
                 </div>
@@ -263,21 +263,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                     <p className="text-gray-500 mt-1">@{userId.substring(0,12)}...</p>
 
                     <div className="mt-6 border-t border-gray-200 pt-4 max-w-sm mx-auto">
-                        <div className="text-right space-y-3">
+                        <div className="text-start space-y-3">
                             <div className="flex items-center">
-                                <IdentificationIcon className="w-6 h-6 text-gray-400 ml-4 flex-shrink-0" />
-                                <span className="font-semibold text-gray-600">النوع:</span>
-                                <span className="mr-2 text-gray-800 truncate">{userToDisplay.gender || 'غير محدد'}</span>
+                                <IdentificationIcon className="w-6 h-6 text-gray-400 me-4 flex-shrink-0" />
+                                <span className="font-semibold text-gray-600">{t('gender')}:</span>
+                                <span className="ms-2 text-gray-800 truncate">{userToDisplay.gender || t('notSpecified')}</span>
                             </div>
                             <div className="flex items-center">
-                                <AcademicCapIcon className="w-6 h-6 text-gray-400 ml-4 flex-shrink-0" />
-                                <span className="font-semibold text-gray-600">المؤهل الدراسي:</span>
-                                <span className="mr-2 text-gray-800 truncate">{userToDisplay.qualification || 'غير محدد'}</span>
+                                <AcademicCapIcon className="w-6 h-6 text-gray-400 me-4 flex-shrink-0" />
+                                <span className="font-semibold text-gray-600">{t('qualification')}:</span>
+                                <span className="ms-2 text-gray-800 truncate">{userToDisplay.qualification || t('notSpecified')}</span>
                             </div>
                             <div className="flex items-center">
-                                <GlobeAltIcon className="w-6 h-6 text-gray-400 ml-4 flex-shrink-0" />
-                                <span className="font-semibold text-gray-600">الدولة:</span>
-                                <span className="mr-2 text-gray-800 truncate">{userToDisplay.country || 'غير محدد'}</span>
+                                <GlobeAltIcon className="w-6 h-6 text-gray-400 me-4 flex-shrink-0" />
+                                <span className="font-semibold text-gray-600">{t('country')}:</span>
+                                <span className="ms-2 text-gray-800 truncate">{userToDisplay.country || t('notSpecified')}</span>
                             </div>
                         </div>
                     </div>
@@ -288,15 +288,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             <div className="flex justify-around items-center mt-6 border-t border-gray-200 py-4">
                 <div className="text-center w-1/3">
                     <p className="font-bold text-xl text-gray-800">{userPosts.length}</p>
-                    <p className="text-sm text-gray-500">المنشورات</p>
+                    <p className="text-sm text-gray-500">{t('posts')}</p>
                 </div>
                 <div className="text-center w-1/3">
                     <p className="font-bold text-xl text-gray-800">{userToDisplay.followers?.length || 0}</p>
-                    <p className="text-sm text-gray-500">المتابعون</p>
+                    <p className="text-sm text-gray-500">{t('followers')}</p>
                 </div>
                 <div className="text-center w-1/3">
                     <p className="font-bold text-xl text-gray-800">{userToDisplay.following?.length || 0}</p>
-                    <p className="text-sm text-gray-500">يتابع</p>
+                    <p className="text-sm text-gray-500">{t('following')}</p>
                 </div>
             </div>
 
@@ -310,7 +310,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                                 : 'bg-blue-600 text-white hover:bg-blue-700'
                         }`}
                     >
-                        {isFollowing ? 'إلغاء المتابعة' : 'متابعة'}
+                        {isFollowing ? t('unfollow') : t('follow')}
                     </button>
                 )}
 
@@ -321,7 +321,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                             className="font-semibold px-6 py-2 rounded-full transition-colors bg-gray-200 text-gray-800 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2"
                         >
                             <PencilIcon className="w-5 h-5" />
-                            <span>تعديل الملف الشخصي</span>
+                            <span>{t('editProfile')}</span>
                         </button>
                     </div>
                 )}
@@ -333,14 +333,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                                 disabled={isSaving}
                                 className="font-semibold px-8 py-2 rounded-full transition-colors bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 disabled:opacity-50"
                             >
-                                إلغاء
+                                {t('cancel')}
                             </button>
                             <button
                                 onClick={handleSaveProfile}
                                 disabled={isSaving || !newUsername.trim() || !hasChanges}
                                 className="font-semibold px-8 py-2 rounded-full transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed w-32"
                             >
-                                {isSaving ? 'جاري الحفظ...' : 'حفظ'}
+                                {isSaving ? t('saving') : t('save')}
                             </button>
                         </div>
                         <div className="mt-6 border-t pt-4 text-center">
@@ -349,7 +349,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                                 disabled={isSaving}
                                 className="font-semibold text-sm text-red-600 hover:text-red-800 hover:bg-red-50 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                حذف الحساب نهائياً
+                                {t('deleteAccountPermanently')}
                             </button>
                         </div>
                     </>
@@ -359,7 +359,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 
         {isMyProfile && <CreatePostWidget onAddPost={onAddPost} myAvatarUrl={myAvatarUrl} onShowToast={onShowToast} />}
 
-        <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">المنشورات</h3>
+        <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">{t('posts')}</h3>
         <div className="space-y-6">
             {userPosts.length > 0 ? (
                 userPosts.map(post => (
@@ -377,7 +377,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 ))
             ) : (
                 <div className="text-center text-gray-500 py-10 bg-gray-100 rounded-lg">
-                    <p>لا توجد منشورات من هذا المستخدم بعد.</p>
+                    <p>{t('noPostsYet')}</p>
                 </div>
             )}
         </div>

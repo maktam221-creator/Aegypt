@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { Profile } from '../types';
+import { useTranslations } from '../hooks/useTranslations';
 
 interface FollowSuggestionsProps {
   suggestedUsers: (Profile & { id: string })[];
@@ -10,17 +10,18 @@ interface FollowSuggestionsProps {
 }
 
 const FollowSuggestions: React.FC<FollowSuggestionsProps> = ({ suggestedUsers, following, onToggleFollow, onContinue }) => {
+  const { t } = useTranslations();
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4 font-sans">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-gray-800">
-            مرحباً بك في Aegypt!
+            {t('welcomeToAegypt')}
           </h1>
-          <p className="text-gray-600 mt-2">ابدأ بمتابعة بعض الحسابات المثيرة للاهتمام.</p>
+          <p className="text-gray-600 mt-2">{t('followSuggestionPrompt')}</p>
         </div>
 
-        <div className="space-y-4 mb-8 max-h-96 overflow-y-auto pr-2">
+        <div className="space-y-4 mb-8 max-h-96 overflow-y-auto pe-2">
           {suggestedUsers.map((userProfile) => {
             const isFollowing = following.has(userProfile.id);
             return (
@@ -29,7 +30,7 @@ const FollowSuggestions: React.FC<FollowSuggestionsProps> = ({ suggestedUsers, f
                   <img
                     src={userProfile.avatarUrl}
                     alt={userProfile.username}
-                    className="w-12 h-12 rounded-full object-cover mr-4 ml-0"
+                    className="w-12 h-12 rounded-full object-cover me-4"
                   />
                   <div>
                     <p className="font-bold text-gray-800">{userProfile.username}</p>
@@ -44,7 +45,7 @@ const FollowSuggestions: React.FC<FollowSuggestionsProps> = ({ suggestedUsers, f
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  {isFollowing ? 'تتابعه' : 'متابعة'}
+                  {isFollowing ? t('following') : t('follow')}
                 </button>
               </div>
             );
@@ -56,7 +57,7 @@ const FollowSuggestions: React.FC<FollowSuggestionsProps> = ({ suggestedUsers, f
             onClick={onContinue}
             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            متابعة إلى الصفحة الرئيسية
+            {t('continueToHome')}
           </button>
         </div>
       </div>
