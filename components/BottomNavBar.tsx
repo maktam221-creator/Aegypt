@@ -1,12 +1,14 @@
 import React from 'react';
-import { HomeIcon, PlusIcon, UserIcon } from './Icons';
+import { HomeIcon, PlusIcon, UserIcon, BellIcon } from './Icons';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface BottomNavBarProps {
-  currentView: 'home' | 'profile';
+  currentView: 'home' | 'profile' | 'notifications';
   onGoHome: () => void;
   onNewPost: () => void;
   onGoToProfile: () => void;
+  onGoToNotifications: () => void;
+  unreadNotificationsCount: number;
 }
 
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ 
@@ -14,11 +16,14 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
   onGoHome, 
   onNewPost, 
   onGoToProfile,
+  onGoToNotifications,
+  unreadNotificationsCount,
 }) => {
   const { t } = useTranslations();
 
   const navItems = [
     { view: 'home', label: t('home'), icon: HomeIcon, action: onGoHome },
+    { view: 'notifications', label: t('notifications'), icon: BellIcon, action: onGoToNotifications, badgeCount: unreadNotificationsCount },
     { view: 'profile', label: t('myProfile'), icon: UserIcon, action: onGoToProfile },
   ];
 
@@ -34,7 +39,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
 
         <button
           onClick={onNewPost}
-          className="flex items-center justify-center bg-blue-600 text-white rounded-full w-14 h-14 -mt-6 shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="flex items-center justify-center bg-blue-600 text-white rounded-full w-14 h-14 -mt-6 shadow-lg focus:outline-none"
           aria-label={t('newPostAria')}
         >
           <PlusIcon className="w-8 h-8" />
@@ -54,18 +59,24 @@ interface NavItemProps {
     icon: React.FC<{className?: string}>;
     action: () => void;
     currentView: string;
+    badgeCount?: number;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ view, label, icon: Icon, action, currentView }) => {
+const NavItem: React.FC<NavItemProps> = ({ view, label, icon: Icon, action, currentView, badgeCount }) => {
     const isActive = view === currentView;
     return (
         <button
           onClick={action}
-          className={`flex flex-col items-center justify-center transition-colors w-1/4 ${isActive ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}
+          className={`flex-1 flex flex-col items-center justify-center relative ${isActive ? 'text-blue-600' : 'text-gray-600'}`}
           aria-label={label}
         >
           <Icon className="w-7 h-7" />
           <span className={`text-xs mt-1 ${isActive ? 'font-bold' : ''}`}>{label}</span>
+          {badgeCount && badgeCount > 0 && (
+            <span className="absolute top-0 end-1/2 translate-x-[22px] block w-4 h-4 text-[10px] leading-4 text-center text-white bg-red-500 rounded-full">
+                {badgeCount}
+            </span>
+          )}
         </button>
     );
 };

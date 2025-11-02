@@ -30,12 +30,13 @@ export interface EditableProfileData {
   username: string;
 }
 
-// FIX: Add Notification interface
 export interface Notification {
   id: string;
   type: 'like' | 'comment' | 'follow';
+  actorId: string;
   actorUsername: string;
   actorAvatarUrl: string;
+  postId?: string;
   postContentSample?: string;
   timestamp: Date;
   read: boolean;

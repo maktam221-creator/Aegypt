@@ -72,7 +72,7 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
         <h2 className="text-2xl font-bold mb-4 text-gray-800">{t('createNewPost')}</h2>
         <form onSubmit={handleSubmit}>
           <textarea
-            className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:border-blue-500"
             placeholder={t('postPlaceholder')}
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -87,7 +87,7 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
                     <button
                         type="button"
                         onClick={handleRemoveImage}
-                        className="absolute top-2 end-2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75 transition-colors"
+                        className="absolute top-2 end-2 bg-black bg-opacity-50 text-white rounded-full p-1"
                         aria-label={t('removeImageAria')}
                     >
                         <XCircleIcon className="w-6 h-6" />
@@ -101,7 +101,7 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
              <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center space-x-2 rtl:space-x-reverse p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="flex items-center space-x-2 rtl:space-x-reverse p-2 text-blue-600 rounded-lg"
               disabled={isUploading}
             >
                 <PhotoIcon className="w-6 h-6" />
@@ -119,7 +119,7 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
                 <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg"
                 disabled={isUploading}
                 >
                 {t('cancel')}
@@ -127,7 +127,7 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
                 <button
                     type="submit"
                     disabled={(!content.trim() && !imagePreview) || isUploading}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed w-24 flex justify-center items-center"
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg disabled:bg-blue-300 disabled:cursor-not-allowed w-24 flex justify-center items-center"
                 >
                     {isUploading ? <LoadingSpinnerIcon className="w-5 h-5" /> : t('publish')}
                 </button>

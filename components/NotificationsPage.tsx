@@ -42,7 +42,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ notifications, on
       <div className="flex justify-between items-center mb-4 pb-2 border-b">
         <h2 className="text-xl font-bold text-gray-800">{t('notifications')}</h2>
         {unreadCount > 0 && (
-          <button onClick={onMarkAllRead} className="text-sm text-blue-600 hover:underline font-semibold">
+          <button onClick={onMarkAllRead} className="text-sm text-blue-600 font-semibold">
             {t('markAllAsRead')}
           </button>
         )}
@@ -54,7 +54,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ notifications, on
             <button
               key={n.id}
               onClick={() => onNotificationClick(n)}
-              className={`w-full text-start p-3 flex items-start gap-4 transition-colors rounded-lg ${!n.read ? 'bg-blue-100' : 'bg-white hover:bg-gray-100'}`}
+              className={`w-full text-start p-3 flex items-start gap-4 rounded-lg ${!n.read ? 'bg-blue-100' : 'bg-white'}`}
             >
               <div className="relative flex-shrink-0">
                   <img src={n.actorAvatarUrl} alt={n.actorUsername} className="w-12 h-12 rounded-full object-cover" />

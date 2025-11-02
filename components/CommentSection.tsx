@@ -32,7 +32,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ comments, onAddComment,
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         placeholder={t('addCommentPlaceholder')}
-                        className="w-full p-2 ps-10 pe-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
+                        className="w-full p-2 ps-10 pe-2 border border-gray-200 rounded-lg focus:border-blue-500 resize-none"
                         rows={1}
                         onInput={(e) => {
                             const target = e.target as HTMLTextAreaElement;
@@ -43,7 +43,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ comments, onAddComment,
                     <button
                         type="submit"
                         disabled={!newComment.trim()}
-                        className="absolute top-1/2 -translate-y-1/2 end-2 p-2 text-blue-600 disabled:text-gray-400 hover:bg-blue-50 disabled:hover:bg-transparent rounded-full transition-colors"
+                        className="absolute top-1/2 -translate-y-1/2 end-2 p-2 text-blue-600 disabled:text-gray-400 rounded-full"
                         aria-label={t('sendCommentAria')}
                     >
                         <PaperAirplaneIcon className="w-6 h-6" />

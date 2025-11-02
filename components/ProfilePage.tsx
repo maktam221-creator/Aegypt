@@ -122,7 +122,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     return (
       <div className="text-center py-10">
         <p className="text-gray-600">{t('userNotFound')}</p>
-        <button onClick={onBack} className="text-blue-600 hover:underline mt-4 font-semibold">
+        <button onClick={onBack} className="text-blue-600 mt-4 font-semibold">
           {t('backToHome')}
         </button>
       </div>
@@ -134,7 +134,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   return (
     <div>
         <div className="mb-6">
-            <button onClick={onBack} className="inline-flex items-center text-blue-600 hover:underline font-semibold">
+            <button onClick={onBack} className="inline-flex items-center text-blue-600 font-semibold">
                 <ArrowRightIcon className="w-5 h-5 me-2" />
                 <span>{t('back')}</span>
             </button>
@@ -165,7 +165,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                             />
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="absolute bottom-1 end-1 bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 ring-white ring-offset-2 ring-offset-blue-600"
+                                className="absolute bottom-1 end-1 bg-blue-600 text-white rounded-full p-2 focus:outline-none"
                                 aria-label={t('changeProfilePictureAria')}
                             >
                                 <CameraIcon className="w-5 h-5" />
@@ -182,7 +182,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                         type="text"
                         value={newUsername}
                         onChange={(e) => setNewUsername(e.target.value)}
-                        className="text-center bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 w-full"
+                        className="text-center bg-gray-100 border border-gray-300 rounded-lg p-2 w-full"
                         autoFocus
                     />
                     </div>
@@ -215,10 +215,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 {!isMyProfile && (
                     <button 
                         onClick={() => onToggleFollow(userId)}
-                        className={`font-semibold px-8 py-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-40 ${
+                        className={`font-semibold px-8 py-2 rounded-full focus:outline-none w-40 ${
                             isFollowing
-                                ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
-                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                                ? 'bg-white text-gray-700 border border-gray-300'
+                                : 'bg-blue-600 text-white'
                         }`}
                     >
                         {isFollowing ? t('unfollow') : t('follow')}
@@ -229,7 +229,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                     <div className="flex justify-center mt-2">
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="font-semibold px-6 py-2 rounded-full transition-colors bg-gray-200 text-gray-800 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2"
+                            className="font-semibold px-6 py-2 rounded-full bg-gray-200 text-gray-800 focus:outline-none flex items-center justify-center gap-2"
                         >
                             <PencilIcon className="w-5 h-5" />
                             <span>{t('editProfile')}</span>
@@ -242,14 +242,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                             <button
                                 onClick={handleCancelEdit}
                                 disabled={isSaving}
-                                className="font-semibold px-8 py-2 rounded-full transition-colors bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 disabled:opacity-50"
+                                className="font-semibold px-8 py-2 rounded-full bg-white text-gray-700 border border-gray-300 disabled:opacity-50"
                             >
                                 {t('cancel')}
                             </button>
                             <button
                                 onClick={handleSaveProfile}
                                 disabled={isSaving || !newUsername.trim() || !hasChanges}
-                                className="font-semibold px-8 py-2 rounded-full transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed w-32"
+                                className="font-semibold px-8 py-2 rounded-full bg-blue-600 text-white disabled:bg-blue-300 disabled:cursor-not-allowed w-32"
                             >
                                 {isSaving ? t('saving') : t('save')}
                             </button>

@@ -31,14 +31,14 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({ isOpe
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+            className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg disabled:opacity-50"
           >
             {t('cancel')}
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-red-300 disabled:cursor-not-allowed w-36"
+            className="px-6 py-2 bg-red-600 text-white rounded-lg disabled:bg-red-300 disabled:cursor-not-allowed w-36"
           >
             {isLoading ? t('deleting') : t('deleteAccountConfirmButton')}
           </button>

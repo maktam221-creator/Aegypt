@@ -90,7 +90,7 @@ const AuthPage: React.FC = () => {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 sm:text-sm"
                 />
               </div>
             </div>
@@ -109,7 +109,7 @@ const AuthPage: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 sm:text-sm"
               />
             </div>
           </div>
@@ -127,7 +127,7 @@ const AuthPage: React.FC = () => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 sm:text-sm"
               />
             </div>
           </div>
@@ -138,7 +138,7 @@ const AuthPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 focus:outline-none disabled:bg-blue-300"
             >
               {isLoading ? t('loading') : (isLogin ? t('login') : t('createAccount'))}
             </button>
@@ -146,7 +146,7 @@ const AuthPage: React.FC = () => {
         </form>
 
         <div className="mt-6 text-center">
-          <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="text-sm text-blue-600 hover:underline">
+          <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="text-sm text-blue-600">
             {isLogin ? t('noAccountPrompt') : t('hasAccountPrompt')}
           </button>
         </div>

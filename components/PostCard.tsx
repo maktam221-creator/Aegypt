@@ -67,7 +67,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, myUserId, onSelectUser, onAdd
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 transition-shadow hover:shadow-md flex flex-col">
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex flex-col">
       <div className="flex items-center mb-4">
         <button onClick={() => onSelectUser(post.userId)} className="flex items-center text-start group">
           <img
@@ -76,7 +76,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, myUserId, onSelectUser, onAdd
             className="w-12 h-12 rounded-full object-cover me-4"
           />
           <div>
-            <p className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{post.username}</p>
+            <p className="font-bold text-gray-800">{post.username}</p>
             <p className="text-sm text-gray-500">{formatTimeAgo(post.timestamp, t)}</p>
           </div>
         </button>
@@ -99,21 +99,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, myUserId, onSelectUser, onAdd
       <div className="pt-4 mt-auto border-t border-gray-100 flex justify-around text-gray-500">
         <button
           onClick={handleLike}
-          className={`flex items-center space-x-2 rtl:space-x-reverse transition-colors p-2 rounded-lg ${isLiked ? 'text-red-500' : 'hover:text-red-500'}`}
+          className={`flex items-center space-x-2 rtl:space-x-reverse p-2 rounded-lg ${isLiked ? 'text-red-500' : ''}`}
         >
           <HeartIcon className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
           <span className="font-semibold">{t('like')} ({post.likes || 0})</span>
         </button>
         <button 
           onClick={() => setShowComments(!showComments)}
-          className="flex items-center space-x-2 rtl:space-x-reverse hover:text-blue-500 transition-colors p-2 rounded-lg"
+          className="flex items-center space-x-2 rtl:space-x-reverse p-2 rounded-lg"
         >
           <ChatBubbleOvalLeftIcon className="w-6 h-6" />
           <span className="font-semibold">{t('comment')} ({post.comments?.length || 0})</span>
         </button>
         <button 
           onClick={handleShare}
-          className="flex items-center space-x-2 rtl:space-x-reverse hover:text-green-500 transition-colors p-2 rounded-lg"
+          className="flex items-center space-x-2 rtl:space-x-reverse p-2 rounded-lg"
         >
           <ArrowUpOnSquareIcon className="w-6 h-6" />
           <span className="font-semibold">{t('share')} ({post.shares || 0})</span>

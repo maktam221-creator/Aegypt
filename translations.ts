@@ -451,7 +451,6 @@ export const translations = {
     fr: 'Créer une nouvelle publication',
   },
 
-  // FIX: Add missing translation keys
   // Follow Suggestions
   welcomeToAegypt: {
     ar: 'مرحباً بك في Aegypt',

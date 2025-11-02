@@ -77,7 +77,7 @@ const CreatePostWidget: React.FC<CreatePostWidgetProps> = ({ onAddPost, myAvatar
             className="w-12 h-12 rounded-full object-cover"
           />
           <textarea
-            className="w-full min-h-[50px] p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
+            className="w-full min-h-[50px] p-3 border border-gray-200 rounded-lg focus:border-blue-500 resize-none"
             placeholder={t('postPlaceholder')}
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -97,7 +97,7 @@ const CreatePostWidget: React.FC<CreatePostWidgetProps> = ({ onAddPost, myAvatar
                     <button
                     type="button"
                     onClick={handleRemoveImage}
-                    className="absolute top-2 end-2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75 transition-colors"
+                    className="absolute top-2 end-2 bg-black bg-opacity-50 text-white rounded-full p-1"
                     aria-label={t('removeImageAria')}
                     >
                     <XCircleIcon className="w-6 h-6" />
@@ -112,7 +112,7 @@ const CreatePostWidget: React.FC<CreatePostWidgetProps> = ({ onAddPost, myAvatar
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center space-x-2 rtl:space-x-reverse p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            className="flex items-center space-x-2 rtl:space-x-reverse p-2 text-blue-600 rounded-lg"
             disabled={isUploading}
           >
             <PhotoIcon className="w-6 h-6" />
@@ -129,7 +129,7 @@ const CreatePostWidget: React.FC<CreatePostWidgetProps> = ({ onAddPost, myAvatar
           <button
             type="submit"
             disabled={(!content.trim() && !imagePreview) || isUploading}
-            className="px-8 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed w-28 flex justify-center items-center"
+            className="px-8 py-2 bg-blue-600 text-white font-semibold rounded-full disabled:bg-blue-300 disabled:cursor-not-allowed w-28 flex justify-center items-center"
           >
             {isUploading ? <LoadingSpinnerIcon className="w-5 h-5" /> : t('publish')}
           </button>

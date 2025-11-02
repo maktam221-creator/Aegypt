@@ -39,10 +39,10 @@ const FollowSuggestions: React.FC<FollowSuggestionsProps> = ({ suggestedUsers, f
                 </div>
                 <button
                   onClick={() => onToggleFollow(userProfile.id)}
-                  className={`font-semibold px-4 py-1.5 rounded-full transition-colors text-sm w-24 ${
+                  className={`font-semibold px-4 py-1.5 rounded-full text-sm w-24 ${
                     isFollowing
-                      ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                      ? 'bg-white text-gray-700 border border-gray-300'
+                      : 'bg-blue-600 text-white'
                   }`}
                 >
                   {isFollowing ? t('following') : t('follow')}
@@ -55,7 +55,7 @@ const FollowSuggestions: React.FC<FollowSuggestionsProps> = ({ suggestedUsers, f
         <div>
           <button
             onClick={onContinue}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             {t('continueToHome')}
           </button>

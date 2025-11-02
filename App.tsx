@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Post, Comment, Profile, EditableProfileData } from './types';
+import { Post, Comment, Profile, EditableProfileData, Notification } from './types';
 import Header from './components/Header';
 import PostCard from './components/PostCard';
 import PostForm from './components/PostForm';
 import LoadingSpinner from './components/LoadingSpinner';
 import BottomNavBar from './components/BottomNavBar';
 import ProfilePage from './components/ProfilePage';
+import NotificationsPage from './components/NotificationsPage';
 import Toast from './components/Toast';
 import CreatePostWidget from './components/CreatePostWidget';
 import AuthPage from './components/AuthPage';
@@ -15,6 +16,7 @@ import { useTranslations } from './hooks/useTranslations';
 
 const POSTS_STORAGE_KEY = 'aegypt_posts';
 const PROFILES_STORAGE_KEY = 'aegypt_profiles';
+const NOTIFICATIONS_STORAGE_KEY = 'aegypt_notifications';
 const AVATAR_STORAGE_KEY_PREFIX = 'aegypt_avatar_';
 
 const App: React.FC = () => {
@@ -23,10 +25,11 @@ const App: React.FC = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPostForm, setShowPostForm] = useState(false);
-  const [currentView, setCurrentView] = useState<'home' | 'profile'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'profile' | 'notifications'>('home');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [myAvatarUrl, setMyAvatarUrl] = useState('');
@@ -48,6 +51,7 @@ const App: React.FC = () => {
     if (!user) {
       setPosts([]);
       setProfiles({});
+      setNotifications([]);
       setMyAvatarUrl('');
       setIsLoading(false);
       return;
@@ -55,10 +59,11 @@ const App: React.FC = () => {
 
     setIsLoading(true);
     
-    // Heuristic for identifying Firebase UIDs. They are typically 28-character alphanumeric strings.
-    const firebaseUidRegex = /^[a-zA-Z0-9]{28}$/;
+    // Heuristic for identifying Firebase UIDs. They are typically alphanumeric strings of varying length.
+    const firebaseUidRegex = /^[a-zA-Z0-9]+$/;
 
     const AVATAR_STORAGE_KEY = `${AVATAR_STORAGE_KEY_PREFIX}${user.uid}`;
+    const NOTIFICATIONS_KEY = `${NOTIFICATIONS_STORAGE_KEY}_${user.uid}`;
 
     let loadedPosts: Post[] = [];
     const storedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
@@ -98,6 +103,20 @@ const App: React.FC = () => {
         localStorage.removeItem(PROFILES_STORAGE_KEY);
       }
     }
+
+    const storedNotifications = localStorage.getItem(NOTIFICATIONS_KEY);
+    let loadedNotifications: Notification[] = [];
+    if (storedNotifications) {
+      try {
+        loadedNotifications = JSON.parse(storedNotifications).map((n: any) => ({
+          ...n,
+          timestamp: new Date(n.timestamp)
+        }));
+      } catch(e) {
+        console.error("Failed to parse notifications from localStorage", e);
+        localStorage.removeItem(NOTIFICATIONS_KEY);
+      }
+    }
     
     // Ensure the current user has a profile. This makes new users appear in search.
     if (!loadedProfiles[user.uid]) {
@@ -126,6 +145,7 @@ const App: React.FC = () => {
 
     setPosts(loadedPosts);
     setProfiles(loadedProfiles);
+    setNotifications(loadedNotifications);
     
     setIsLoading(false);
 
@@ -157,9 +177,25 @@ const App: React.FC = () => {
     }
   }, [myAvatarUrl, isLoading, user]);
 
+  useEffect(() => {
+    if (!isLoading && user) {
+      localStorage.setItem(`${NOTIFICATIONS_STORAGE_KEY}_${user.uid}`, JSON.stringify(notifications));
+    }
+  }, [notifications, isLoading, user]);
+
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const createNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    const newNotification: Notification = {
+      ...notification,
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      read: false,
+    };
+    setNotifications(current => [newNotification, ...current]);
   };
 
   const handleUpdateAvatar = (newImageUrl: string) => {
@@ -256,6 +292,17 @@ const App: React.FC = () => {
 
     const post = posts.find(p => p.id === postId);
     if (!post) return;
+    
+    if (post.userId !== user.uid) {
+        createNotification({
+            type: 'comment',
+            actorId: user.uid,
+            actorUsername: user.displayName || t('user'),
+            actorAvatarUrl: myAvatarUrl,
+            postId: post.id,
+            postContentSample: post.content.substring(0, 50),
+        });
+    }
 
     setPosts(currentPosts => 
       currentPosts.map(p => {
@@ -278,6 +325,17 @@ const App: React.FC = () => {
     if (!user) return;
     const post = posts.find(p => p.id === postId);
     if (!post) return;
+    
+    if (post.userId !== user.uid) {
+      createNotification({
+        type: 'like',
+        actorId: user.uid,
+        actorUsername: user.displayName || t('user'),
+        actorAvatarUrl: myAvatarUrl,
+        postId: post.id,
+        postContentSample: post.content.substring(0, 50),
+      });
+    }
 
     setPosts(currentPosts => currentPosts.map(p => p.id === postId ? { ...p, likes: (p.likes || 0) + 1 } : p));
   };
@@ -320,6 +378,12 @@ const App: React.FC = () => {
             myProfile.following.push(userIdToToggle);
             otherProfile.followers.push(myId);
             showToast(t('followedUser', { username: otherProfile.username }));
+            createNotification({
+                type: 'follow',
+                actorId: myId,
+                actorUsername: myProfile.username,
+                actorAvatarUrl: myProfile.avatarUrl,
+            });
         }
 
         newProfiles[myId] = myProfile;
@@ -344,6 +408,27 @@ const App: React.FC = () => {
     setCurrentView('home');
     setSelectedUserId(null);
   };
+  
+  const handleGoToNotifications = () => {
+    setCurrentView('notifications');
+    setSelectedUserId(null);
+  };
+  
+  const handleMarkAllAsRead = () => {
+    setNotifications(current => current.map(n => ({ ...n, read: true })));
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    setNotifications(current => current.map(n => n.id === notification.id ? { ...n, read: true } : n));
+    if (notification.type === 'follow') {
+      handleSelectUser(notification.actorId);
+    } else {
+      // For now, other notifications just go to the home feed.
+      // A future improvement could be navigating to the specific post.
+      handleGoHome();
+    }
+  };
+
 
   const handleLogout = async () => {
     try {
@@ -365,6 +450,7 @@ const App: React.FC = () => {
   
   const myCurrentProfile = profiles[user.uid];
   const followingSet = new Set(myCurrentProfile?.following || []);
+  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
@@ -373,6 +459,10 @@ const App: React.FC = () => {
         onGoToProfile={handleGoToMyProfile} 
         onLogout={handleLogout}
         myAvatarUrl={myAvatarUrl}
+        unreadCount={unreadNotificationsCount}
+        notifications={notifications}
+        onNotificationClick={handleNotificationClick}
+        onMarkAllRead={handleMarkAllAsRead}
       />
       <main className="container mx-auto max-w-2xl px-4 py-8 pb-24">
         {error && <div className="text-center text-red-500 bg-red-100 p-4 rounded-lg">{error}</div>}
@@ -399,6 +489,14 @@ const App: React.FC = () => {
         {currentView === 'profile' && selectedUserId && (
           <ProfilePage userId={selectedUserId} myUserId={user.uid} myDisplayName={user.displayName || ''} posts={posts} userProfile={profiles[selectedUserId]} onSelectUser={handleSelectUser} onBack={handleGoHome} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} following={followingSet} onToggleFollow={handleToggleFollow} onAddPost={handleAddPost} myAvatarUrl={myAvatarUrl} onUpdateAvatar={handleUpdateAvatar} onUpdateProfile={handleUpdateProfile} />
         )}
+
+        {currentView === 'notifications' && (
+            <NotificationsPage
+                notifications={notifications}
+                onNotificationClick={handleNotificationClick}
+                onMarkAllRead={handleMarkAllAsRead}
+            />
+        )}
       </main>
       
       <BottomNavBar 
@@ -406,6 +504,8 @@ const App: React.FC = () => {
         onGoHome={handleGoHome} 
         onNewPost={() => setShowPostForm(true)} 
         onGoToProfile={handleGoToMyProfile}
+        onGoToNotifications={handleGoToNotifications}
+        unreadNotificationsCount={unreadNotificationsCount}
       />
       
       {showPostForm && <PostForm onAddPost={handleAddPost} onClose={() => setShowPostForm(false)} onShowToast={showToast} />}
