@@ -1,13 +1,12 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 
 // Fallback data in case of API key absence or API failure
 const fallbackPosts: Omit<import('../types').Post, 'id' | 'timestamp'>[] = [
-    { username: "فنان رقمي", avatarUrl: "https://picsum.photos/seed/art/48", content: "الفن هو الطريقة التي نقول بها ما لا نستطيع قوله. كل لوحة هي قصة تنتظر من يقرأها. #فن #إبداع" },
-    { username: "مستكشف الطبيعة", avatarUrl: "https://picsum.photos/seed/nature/48", content: "لا يوجد واي فاي في الغابة، لكنك ستجد اتصالًا أفضل. قضيت اليوم في أحضان الطبيعة، شعور لا يوصف بالسلام. 🌲 #طبيعة #هدوء" },
-    { username: "خبير تقني", avatarUrl: "https://picsum.photos/seed/tech/48", content: "الذكاء الاصطناعي يتطور بسرعة مذهلة! ما هو أكثر تطبيق للذكاء الاصطناعي أثار إعجابكم مؤخرًا؟ شاركوني آرائكم. #تقنية #مستقبل" },
-    { username: "ذواقة القهوة", avatarUrl: "https://picsum.photos/seed/coffee/48", content: "رائحة القهوة في الصباح هي بداية مثالية ليوم مليء بالإنجازات. كيف تفضلون قهوتكم؟ ☕ #قهوة #صباح_الخير" },
-    { username: "عاشق السفر", avatarUrl: "https://picsum.photos/seed/travel/48", content: "السفر يفتح العقل ويجدد الروح. التخطيط للوجهة القادمة... هل لديكم أي اقتراحات؟ ✈️ #سفر #مغامرة" }
+    { userId: "digital-artist", username: "فنان رقمي", avatarUrl: "https://picsum.photos/seed/art/48", content: "الفن هو الطريقة التي نقول بها ما لا نستطيع قوله. كل لوحة هي قصة تنتظر من يقرأها. #فن #إبداع" },
+    { userId: "nature-explorer", username: "مستكشف الطبيعة", avatarUrl: "https://picsum.photos/seed/nature/48", content: "لا يوجد واي فاي في الغابة، لكنك ستجد اتصالًا أفضل. قضيت اليوم في أحضان الطبيعة، شعور لا يوصف بالسلام. 🌲 #طبيعة #هدوء" },
+    { userId: "tech-expert", username: "خبير تقني", avatarUrl: "https://picsum.photos/seed/tech/48", content: "الذكاء الاصطناعي يتطور بسرعة مذهلة! ما هو أكثر تطبيق للذكاء الاصطناعي أثار إعجابكم مؤخرًا؟ شاركوني آرائكم. #تقنية #مستقبل" },
+    { userId: "coffee-lover", username: "ذواقة القهوة", avatarUrl: "https://picsum.photos/seed/coffee/48", content: "رائحة القهوة في الصباح هي بداية مثالية ليوم مليء بالإنجازات. كيف تفضلون قهوتكم؟ ☕ #قهوة #صباح_الخير" },
+    { userId: "travel-enthusiast", username: "عاشق السفر", avatarUrl: "https://picsum.photos/seed/travel/48", content: "السفر يفتح العقل ويجدد الروح. التخطيط للوجهة القادمة... هل لديكم أي اقتراحات؟ ✈️ #سفر #مغامرة" }
 ];
 
 
@@ -25,7 +24,7 @@ export async function generateSamplePosts(): Promise<Omit<import('../types').Pos
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: "Generate 5 sample social media posts in Arabic. Topics can include technology, art, daily life, and nature. For each post, provide a creative Arabic username and a unique placeholder image URL from picsum.photos.",
+      contents: "Generate 5 sample social media posts in Arabic. Topics can include technology, art, daily life, and nature. For each post, provide a creative Arabic username, a unique user ID slug based on the username, and a unique placeholder image URL from picsum.photos.",
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -33,6 +32,10 @@ export async function generateSamplePosts(): Promise<Omit<import('../types').Pos
           items: {
             type: Type.OBJECT,
             properties: {
+              userId: {
+                type: Type.STRING,
+                description: 'A unique user ID, like a slug from the username (e.g., "digital-artist").',
+              },
               username: {
                 type: Type.STRING,
                 description: 'اسم مستخدم عربي إبداعي.',
@@ -46,7 +49,7 @@ export async function generateSamplePosts(): Promise<Omit<import('../types').Pos
                 description: 'محتوى المنشور باللغة العربية.',
               },
             },
-            required: ["username", "avatarUrl", "content"],
+            required: ["userId", "username", "avatarUrl", "content"],
           },
         },
       },

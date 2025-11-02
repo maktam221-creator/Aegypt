@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Post } from './types';
 import { generateSamplePosts } from './services/geminiService';
@@ -7,12 +6,15 @@ import PostCard from './components/PostCard';
 import PostForm from './components/PostForm';
 import LoadingSpinner from './components/LoadingSpinner';
 import { PlusIcon } from './components/Icons';
+import ProfilePage from './components/ProfilePage';
 
 const App: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPostForm, setShowPostForm] = useState(false);
+  const [currentView, setCurrentView] = useState<'home' | 'profile'>('home');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const loadInitialPosts = useCallback(async () => {
     try {
@@ -41,6 +43,7 @@ const App: React.FC = () => {
   const handleAddPost = (content: string) => {
     const newPost: Post = {
       id: Date.now().toString(),
+      userId: 'new-user',
       username: 'مستخدم جديد',
       avatarUrl: `https://picsum.photos/seed/${Date.now()}/48`,
       content,
@@ -50,16 +53,27 @@ const App: React.FC = () => {
     setShowPostForm(false);
   };
 
+  const handleSelectUser = (userId: string) => {
+    setSelectedUserId(userId);
+    setCurrentView('profile');
+  };
+
+  const handleGoHome = () => {
+    setCurrentView('home');
+    setSelectedUserId(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
-      <Header onNewPost={() => setShowPostForm(true)} />
+      <Header onNewPost={() => setShowPostForm(true)} onGoHome={handleGoHome} />
       <main className="container mx-auto max-w-2xl px-4 py-8">
         {isLoading && <LoadingSpinner />}
         {error && <div className="text-center text-red-500 bg-red-100 p-4 rounded-lg">{error}</div>}
-        {!isLoading && !error && (
+        
+        {!isLoading && !error && currentView === 'home' && (
           <div className="space-y-6">
             {posts.length > 0 ? (
-              posts.map((post) => <PostCard key={post.id} post={post} />)
+              posts.map((post) => <PostCard key={post.id} post={post} onSelectUser={handleSelectUser} />)
             ) : (
               <div className="text-center text-gray-500 py-10">
                 <h2 className="text-2xl font-bold">لا توجد منشورات بعد</h2>
@@ -67,6 +81,15 @@ const App: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+
+        {!isLoading && !error && currentView === 'profile' && selectedUserId && (
+          <ProfilePage 
+            userId={selectedUserId}
+            posts={posts}
+            onSelectUser={handleSelectUser}
+            onBack={handleGoHome}
+          />
         )}
       </main>
 

@@ -1,13 +1,13 @@
-
 import React from 'react';
 import { Post } from '../types';
 import { HeartIcon, ChatBubbleOvalLeftIcon, ArrowUpOnSquareIcon } from './Icons';
 
 interface PostCardProps {
   post: Post;
+  onSelectUser: (userId: string) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onSelectUser }) => {
   
   const timeAgo = (date: Date): string => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -27,15 +27,17 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 transition-shadow hover:shadow-md">
       <div className="flex items-center mb-4">
-        <img
-          src={post.avatarUrl}
-          alt={post.username}
-          className="w-12 h-12 rounded-full object-cover mr-4 ml-0" // RTL margin
-        />
-        <div>
-          <p className="font-bold text-gray-800">{post.username}</p>
-          <p className="text-sm text-gray-500">{timeAgo(post.timestamp)}</p>
-        </div>
+        <button onClick={() => onSelectUser(post.userId)} className="flex items-center text-right group">
+          <img
+            src={post.avatarUrl}
+            alt={post.username}
+            className="w-12 h-12 rounded-full object-cover mr-4 ml-0" // RTL margin
+          />
+          <div>
+            <p className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{post.username}</p>
+            <p className="text-sm text-gray-500">{timeAgo(post.timestamp)}</p>
+          </div>
+        </button>
       </div>
       <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
         {post.content}
