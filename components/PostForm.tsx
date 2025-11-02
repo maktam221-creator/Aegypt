@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { PhotoIcon, XCircleIcon } from './Icons';
+import { PhotoIcon, XCircleIcon, LoadingSpinnerIcon } from './Icons';
 import { uploadImage } from '../services/imageService';
 import { useTranslations } from '../hooks/useTranslations';
 
@@ -79,19 +79,23 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
             autoFocus
           ></textarea>
 
-          {imagePreview && (
-             <div className="mt-4 relative">
-                <img src={imagePreview} alt={t('imagePreviewAlt')} className="w-full h-auto rounded-lg max-h-60 object-contain" />
-                <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="absolute top-2 end-2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75 transition-colors"
-                    aria-label={t('removeImageAria')}
-                >
-                    <XCircleIcon className="w-6 h-6" />
-                </button>
-             </div>
-          )}
+            <div className={`transition-[max-height,margin] duration-300 ease-in-out overflow-hidden ${imagePreview ? 'max-h-60 mt-4' : 'max-h-0'}`}>
+                <div className="relative">
+                {imagePreview && (
+                    <>
+                    <img src={imagePreview} alt={t('imagePreviewAlt')} className="w-full h-auto rounded-lg max-h-60 object-contain" />
+                    <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 end-2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75 transition-colors"
+                        aria-label={t('removeImageAria')}
+                    >
+                        <XCircleIcon className="w-6 h-6" />
+                    </button>
+                    </>
+                )}
+                </div>
+            </div>
 
           <div className="mt-4 flex justify-between items-center">
              <button
@@ -121,11 +125,11 @@ const PostForm: React.FC<PostFormProps> = ({ onAddPost, onClose, onShowToast }) 
                 {t('cancel')}
                 </button>
                 <button
-                type="submit"
-                disabled={(!content.trim() && !imagePreview) || isUploading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed w-24"
+                    type="submit"
+                    disabled={(!content.trim() && !imagePreview) || isUploading}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed w-24 flex justify-center items-center"
                 >
-                {isUploading ? t('publishing') : t('publish')}
+                    {isUploading ? <LoadingSpinnerIcon className="w-5 h-5" /> : t('publish')}
                 </button>
             </div>
           </div>
