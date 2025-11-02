@@ -114,32 +114,11 @@ const App: React.FC = () => {
       setProfiles(loadedProfiles);
       setIsLoading(false);
     } else {
-      generateSamplePosts().then(samplePosts => {
-        const postsWithTimestamps: Post[] = samplePosts.map((post, index) => ({
-          ...post,
-          id: `${Date.now()}-${index}`,
-          timestamp: new Date(Date.now() - index * 60000 * 5),
-        }));
-        
-        postsWithTimestamps.forEach(post => {
-          if (!loadedProfiles[post.userId]) {
-            loadedProfiles[post.userId] = {
-              username: post.username,
-              avatarUrl: post.avatarUrl,
-              gender: post.gender || '',
-              qualification: post.qualification || '',
-              country: post.country || '',
-            };
-          }
-        });
-        setPosts(postsWithTimestamps);
-        setProfiles(loadedProfiles);
-      }).catch(err => {
-        console.error('Failed to generate sample posts:', err);
-        setError('حدث خطأ أثناء تحميل المنشورات. الرجاء المحاولة مرة أخرى.');
-      }).finally(() => {
-        setIsLoading(false);
-      });
+      // No posts loaded, and we won't generate any. Just finish loading.
+      setPosts([]);
+      // Keep any profiles that might exist for users with no posts
+      setProfiles(loadedProfiles);
+      setIsLoading(false);
     }
   }, [user]);
 
@@ -373,11 +352,19 @@ const App: React.FC = () => {
         {!isLoading && !error && currentView === 'home' && (
           <>
             <CreatePostWidget onAddPost={handleAddPost} myAvatarUrl={myAvatarUrl} onShowToast={showToast} />
-            <div className="space-y-6">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} myUserId={user.uid} onSelectUser={handleSelectUser} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} myAvatarUrl={myAvatarUrl} />
-              ))}
-            </div>
+            {posts.length > 0 ? (
+              <div className="space-y-6">
+                {posts.map((post) => (
+                  <PostCard key={post.id} post={post} myUserId={user.uid} onSelectUser={handleSelectUser} onAddComment={handleAddComment} onShowToast={showToast} onLikePost={handleLikePost} onSharePost={handleSharePost} myAvatarUrl={myAvatarUrl} />
+                ))}
+              </div>
+            ) : (
+                <div className="text-center text-gray-500 py-16 mt-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+                    <h3 className="text-2xl font-bold text-gray-800">مرحباً بك في Aegypt!</h3>
+                    <p className="mt-2">يبدو أن الساحة هادئة...</p>
+                    <p className="mt-1">كن أول من يشارك أفكاره ويبدأ النقاش!</p>
+                </div>
+            )}
           </>
         )}
 
