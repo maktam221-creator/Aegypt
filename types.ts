@@ -1,3 +1,11 @@
+export interface Comment {
+    id: string;
+    userId: string;
+    username: string;
+    text: string;
+    timestamp: Date;
+}
+
 export interface Post {
   id: string;
   userId: string;
@@ -6,4 +14,5 @@ export interface Post {
   content: string;
   timestamp: Date;
   imageUrl?: string;
+  comments?: Comment[];
 }

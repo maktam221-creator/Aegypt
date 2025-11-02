@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Post } from './types';
+import { Post, Comment } from './types';
 import { generateSamplePosts } from './services/geminiService';
 import Header from './components/Header';
 import PostCard from './components/PostCard';
@@ -7,6 +7,7 @@ import PostForm from './components/PostForm';
 import LoadingSpinner from './components/LoadingSpinner';
 import BottomNavBar from './components/BottomNavBar';
 import ProfilePage from './components/ProfilePage';
+import Toast from './components/Toast';
 
 const MY_USER_ID = 'new-user';
 
@@ -17,6 +18,7 @@ const App: React.FC = () => {
   const [showPostForm, setShowPostForm] = useState(false);
   const [currentView, setCurrentView] = useState<'home' | 'profile'>('home');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const loadInitialPosts = useCallback(async () => {
     try {
@@ -42,6 +44,13 @@ const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  };
+
   const handleAddPost = (content: string, imageUrl: string | null) => {
     const newPost: Post = {
       id: Date.now().toString(),
@@ -50,10 +59,32 @@ const App: React.FC = () => {
       avatarUrl: `https://picsum.photos/seed/${Date.now()}/48`,
       content,
       timestamp: new Date(),
+      comments: [],
       ...(imageUrl && { imageUrl }),
     };
     setPosts([newPost, ...posts]);
     setShowPostForm(false);
+  };
+  
+  const handleAddComment = (postId: string, commentText: string) => {
+    setPosts(currentPosts => 
+      currentPosts.map(post => {
+        if (post.id === postId) {
+          const newComment: Comment = {
+            id: Date.now().toString(),
+            userId: MY_USER_ID,
+            username: 'مستخدم جديد',
+            text: commentText,
+            timestamp: new Date(),
+          };
+          return {
+            ...post,
+            comments: [...(post.comments || []), newComment]
+          }
+        }
+        return post;
+      })
+    );
   };
 
   const handleSelectUser = (userId: string) => {
@@ -80,7 +111,15 @@ const App: React.FC = () => {
         {!isLoading && !error && currentView === 'home' && (
           <div className="space-y-6">
             {posts.length > 0 ? (
-              posts.map((post) => <PostCard key={post.id} post={post} onSelectUser={handleSelectUser} />)
+              posts.map((post) => (
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  onSelectUser={handleSelectUser}
+                  onAddComment={handleAddComment}
+                  onShowToast={showToast}
+                />
+              ))
             ) : (
               <div className="text-center text-gray-500 py-10">
                 <h2 className="text-2xl font-bold">لا توجد منشورات بعد</h2>
@@ -96,6 +135,8 @@ const App: React.FC = () => {
             posts={posts}
             onSelectUser={handleSelectUser}
             onBack={handleGoHome}
+            onAddComment={handleAddComment}
+            onShowToast={showToast}
           />
         )}
       </main>
@@ -112,6 +153,8 @@ const App: React.FC = () => {
         onGoToProfile={handleGoToMyProfile}
         onNewPost={() => setShowPostForm(true)}
       />
+
+      <Toast message={toastMessage} />
     </div>
   );
 };

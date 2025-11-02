@@ -2,12 +2,55 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 // Fallback data in case of API key absence or API failure
 const fallbackPosts: Omit<import('../types').Post, 'id' | 'timestamp'>[] = [
-    { userId: "digital-artist", username: "فنان رقمي", avatarUrl: "https://picsum.photos/seed/art/48", content: "الفن هو الطريقة التي نقول بها ما لا نستطيع قوله. كل لوحة هي قصة تنتظر من يقرأها. #فن #إبداع", imageUrl: "https://picsum.photos/seed/art-post/600/400" },
-    { userId: "nature-explorer", username: "مستكشف الطبيعة", avatarUrl: "https://picsum.photos/seed/nature/48", content: "لا يوجد واي فاي في الغابة، لكنك ستجد اتصالًا أفضل. قضيت اليوم في أحضان الطبيعة، شعور لا يوصف بالسلام. 🌲 #طبيعة #هدوء" },
-    { userId: "tech-expert", username: "خبير تقني", avatarUrl: "https://picsum.photos/seed/tech/48", content: "الذكاء الاصطناعي يتطور بسرعة مذهلة! ما هو أكثر تطبيق للذكاء الاصطناعي أثار إعجابكم مؤخرًا؟ شاركوني آرائكم. #تقنية #مستقبل" },
-    { userId: "coffee-lover", username: "ذواقة القهوة", avatarUrl: "https://picsum.photos/seed/coffee/48", content: "رائحة القهوة في الصباح هي بداية مثالية ليوم مليء بالإنجازات. كيف تفضلون قهوتكم؟ ☕ #قهوة #صباح_الخير" },
-    { userId: "travel-enthusiast", username: "عاشق السفر", avatarUrl: "https://picsum.photos/seed/travel/48", content: "السفر يفتح العقل ويجدد الروح. التخطيط للوجهة القادمة... هل لديكم أي اقتراحات؟ ✈️ #سفر #مغامرة", imageUrl: "https://picsum.photos/seed/travel-post/600/400" },
-    { userId: "new-user", username: "مستخدم جديد", avatarUrl: "https://picsum.photos/seed/new-user/48", content: "مرحباً بالعالم! هذا هو أول منشور لي هنا. متحمس للتواصل معكم جميعاً." }
+    { 
+        userId: "digital-artist", 
+        username: "فنان رقمي", 
+        avatarUrl: "https://picsum.photos/seed/art/48", 
+        content: "الفن هو الطريقة التي نقول بها ما لا نستطيع قوله. كل لوحة هي قصة تنتظر من يقرأها. #فن #إبداع", 
+        imageUrl: "https://picsum.photos/seed/art-post/600/400",
+        comments: [
+            { id: 'c1', userId: 'tech-expert', username: 'خبير تقني', text: 'عمل مذهل!', timestamp: new Date() }
+        ]
+    },
+    { 
+        userId: "nature-explorer", 
+        username: "مستكشف الطبيعة", 
+        avatarUrl: "https://picsum.photos/seed/nature/48", 
+        content: "لا يوجد واي فاي في الغابة، لكنك ستجد اتصالًا أفضل. قضيت اليوم في أحضان الطبيعة، شعور لا يوصف بالسلام. 🌲 #طبيعة #هدوء",
+        comments: []
+    },
+    { 
+        userId: "tech-expert", 
+        username: "خبير تقني", 
+        avatarUrl: "https://picsum.photos/seed/tech/48", 
+        content: "الذكاء الاصطناعي يتطور بسرعة مذهلة! ما هو أكثر تطبيق للذكاء الاصطناعي أثار إعجابكم مؤخرًا؟ شاركوني آرائكم. #تقنية #مستقبل",
+        comments: [
+            { id: 'c2', userId: 'digital-artist', username: 'فنان رقمي', text: 'أعتقد أن أدوات توليد الصور هي الأكثر إثارة للإعجاب.', timestamp: new Date() },
+            { id: 'c3', userId: 'coffee-lover', username: 'ذواقة القهوة', text: 'أتفق معك!', timestamp: new Date() }
+        ]
+    },
+    { 
+        userId: "coffee-lover", 
+        username: "ذواقة القهوة", 
+        avatarUrl: "https://picsum.photos/seed/coffee/48", 
+        content: "رائحة القهوة في الصباح هي بداية مثالية ليوم مليء بالإنجازات. كيف تفضلون قهوتكم؟ ☕ #قهوة #صباح_الخير",
+        comments: []
+    },
+    { 
+        userId: "travel-enthusiast", 
+        username: "عاشق السفر", 
+        avatarUrl: "https://picsum.photos/seed/travel/48", 
+        content: "السفر يفتح العقل ويجدد الروح. التخطيط للوجهة القادمة... هل لديكم أي اقتراحات؟ ✈️ #سفر #مغامرة", 
+        imageUrl: "https://picsum.photos/seed/travel-post/600/400",
+        comments: []
+    },
+    { 
+        userId: "new-user", 
+        username: "مستخدم جديد", 
+        avatarUrl: "https://picsum.photos/seed/new-user/48", 
+        content: "مرحباً بالعالم! هذا هو أول منشور لي هنا. متحمس للتواصل معكم جميعاً.",
+        comments: []
+    }
 ];
 
 
@@ -25,7 +68,7 @@ export async function generateSamplePosts(): Promise<Omit<import('../types').Pos
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: "Generate 5 sample social media posts in Arabic. Topics can include technology, art, daily life, and nature. For each post, provide a creative Arabic username, a unique user ID slug based on the username, and a unique placeholder avatar URL from picsum.photos. For 2-3 of the posts, also include a relevant placeholder imageUrl from `https://picsum.photos/seed/{random-topic}/600/400`.",
+      contents: "Generate 5 sample social media posts in Arabic. Topics can include technology, art, daily life, and nature. For each post, provide a creative Arabic username, a unique user ID slug based on the username, and a unique placeholder avatar URL from picsum.photos. For 2-3 of the posts, also include a relevant placeholder imageUrl from `https://picsum.photos/seed/{random-topic}/600/400`. For 2 posts, add one or two sample comments from other generated users.",
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -52,6 +95,21 @@ export async function generateSamplePosts(): Promise<Omit<import('../types').Pos
               imageUrl: {
                 type: Type.STRING,
                 description: 'Optional placeholder image URL from `https://picsum.photos/seed/{random-topic}/600/400` format.',
+              },
+              comments: {
+                type: Type.ARRAY,
+                description: "An optional array of sample comments.",
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        id: { type: Type.STRING },
+                        userId: { type: Type.STRING },
+                        username: { type: Type.STRING },
+                        text: { type: Type.STRING },
+                        timestamp: { type: Type.STRING, description: "ISO 8601 date string" }
+                    },
+                    required: ["id", "userId", "username", "text", "timestamp"]
+                }
               }
             },
             required: ["userId", "username", "avatarUrl", "content"],
@@ -61,12 +119,18 @@ export async function generateSamplePosts(): Promise<Omit<import('../types').Pos
     });
 
     const jsonText = response.text.trim();
-    const posts = JSON.parse(jsonText);
+    const posts = JSON.parse(jsonText).map(post => ({
+        ...post,
+        comments: (post.comments || []).map(comment => ({
+            ...comment,
+            timestamp: new Date(comment.timestamp)
+        }))
+    }));
     
     // Ensure the new-user is always present for profile view consistency
     const userExists = posts.some(p => p.userId === 'new-user');
     if (!userExists) {
-        posts.push({ userId: "new-user", username: "مستخدم جديد", avatarUrl: "https://picsum.photos/seed/new-user/48", content: "مرحباً بالعالم! هذا هو أول منشور لي هنا. متحمس للتواصل معكم جميعاً." });
+        posts.push({ userId: "new-user", username: "مستخدم جديد", avatarUrl: "https://picsum.photos/seed/new-user/48", content: "مرحباً بالعالم! هذا هو أول منشور لي هنا. متحمس للتواصل معكم جميعاً.", comments: [] });
     }
     
     return posts;

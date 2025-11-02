@@ -8,13 +8,26 @@ interface ProfilePageProps {
   posts: Post[];
   onSelectUser: (userId: string) => void;
   onBack: () => void;
+  onAddComment: (postId: string, commentText: string) => void;
+  onShowToast: (message: string) => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ userId, posts, onSelectUser, onBack }) => {
-  const userPosts = posts.filter(p => p.userId === userId);
+const ProfilePage: React.FC<ProfilePageProps> = ({ userId, posts, onSelectUser, onBack, onAddComment, onShowToast }) => {
+  const userPosts = posts.filter(p => p.userId === userId).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   const user = userPosts.length > 0 ? userPosts[0] : posts.find(p => p.userId === userId);
 
   if (!user) {
+    // A special case for "new-user" who might not have posts yet
+    if (userId === 'new-user') {
+      return (
+        <div className="text-center py-10">
+          <p className="text-gray-600">هذا ملفك الشخصي. لم تقم بنشر أي شيء بعد.</p>
+          <button onClick={onBack} className="text-blue-600 hover:underline mt-4 font-semibold">
+            العودة إلى الصفحة الرئيسية
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="text-center py-10">
         <p className="text-gray-600">لم يتم العثور على المستخدم.</p>
@@ -51,7 +64,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ userId, posts, onSelectUser, 
         <div className="space-y-6">
             {userPosts.length > 0 ? (
                 userPosts.map(post => (
-                    <PostCard key={post.id} post={post} onSelectUser={onSelectUser} />
+                    <PostCard 
+                      key={post.id} 
+                      post={post} 
+                      onSelectUser={onSelectUser}
+                      onAddComment={onAddComment}
+                      onShowToast={onShowToast}
+                    />
                 ))
             ) : (
                 <div className="text-center text-gray-500 py-10 bg-gray-100 rounded-lg">

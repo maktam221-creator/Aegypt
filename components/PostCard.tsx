@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Post } from '../types';
 import { HeartIcon, ChatBubbleOvalLeftIcon, ArrowUpOnSquareIcon } from './Icons';
+import CommentSection from './CommentSection';
 
 interface PostCardProps {
   post: Post;
   onSelectUser: (userId: string) => void;
+  onAddComment: (postId: string, commentText: string) => void;
+  onShowToast: (message: string) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, onSelectUser }) => {
-  
+const PostCard: React.FC<PostCardProps> = ({ post, onSelectUser, onAddComment, onShowToast }) => {
+  const [showComments, setShowComments] = useState(false);
+
   const timeAgo = (date: Date): string => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     let interval = seconds / 31536000;
@@ -21,11 +25,47 @@ const PostCard: React.FC<PostCardProps> = ({ post, onSelectUser }) => {
     if (interval > 1) return `منذ ${Math.floor(interval)} ساعات`;
     interval = seconds / 60;
     if (interval > 1) return `منذ ${Math.floor(interval)} دقائق`;
-    return `منذ ${Math.floor(seconds)} ثوان`;
+    return `الآن`;
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `منشور من ${post.username}`,
+      text: post.content,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        throw new Error('Web Share API not supported');
+      }
+    } catch (err: any) {
+      // Don't show an error toast if the user simply cancelled the share dialog.
+      if (err.name === 'AbortError') {
+        console.log('Share was cancelled by the user.');
+        return;
+      }
+
+      console.error('Share failed:', err);
+      
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(post.content);
+        onShowToast('تم نسخ المنشور إلى الحافظة');
+      } catch (clipErr) {
+        console.error('Clipboard write failed:', clipErr);
+        // This toast is shown if both share and clipboard fail.
+        onShowToast('فشلت المشاركة والنسخ');
+      }
+    }
+  };
+  
+  const handleAddComment = (commentText: string) => {
+    onAddComment(post.id, commentText);
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 transition-shadow hover:shadow-md">
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 transition-shadow hover:shadow-md flex flex-col">
       <div className="flex items-center mb-4">
         <button onClick={() => onSelectUser(post.userId)} className="flex items-center text-right group">
           <img
@@ -54,20 +94,32 @@ const PostCard: React.FC<PostCardProps> = ({ post, onSelectUser }) => {
         </div>
       )}
 
-      <div className="pt-4 border-t border-gray-100 flex justify-around text-gray-500">
+      <div className="pt-4 mt-auto border-t border-gray-100 flex justify-around text-gray-500">
         <button className="flex items-center space-x-2 space-x-reverse hover:text-red-500 transition-colors p-2 rounded-lg">
           <HeartIcon className="w-6 h-6" />
           <span className="font-semibold">إعجاب</span>
         </button>
-        <button className="flex items-center space-x-2 space-x-reverse hover:text-blue-500 transition-colors p-2 rounded-lg">
+        <button 
+          onClick={() => setShowComments(!showComments)}
+          className="flex items-center space-x-2 space-x-reverse hover:text-blue-500 transition-colors p-2 rounded-lg"
+        >
           <ChatBubbleOvalLeftIcon className="w-6 h-6" />
-          <span className="font-semibold">تعليق</span>
+          <span className="font-semibold">تعليق ({post.comments?.length || 0})</span>
         </button>
-        <button className="flex items-center space-x-2 space-x-reverse hover:text-green-500 transition-colors p-2 rounded-lg">
+        <button 
+          onClick={handleShare}
+          className="flex items-center space-x-2 space-x-reverse hover:text-green-500 transition-colors p-2 rounded-lg"
+        >
           <ArrowUpOnSquareIcon className="w-6 h-6" />
           <span className="font-semibold">مشاركة</span>
         </button>
       </div>
+      {showComments && (
+        <CommentSection 
+            comments={post.comments || []}
+            onAddComment={handleAddComment}
+        />
+      )}
     </div>
   );
 };
