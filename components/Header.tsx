@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { UserIcon, SearchIcon, ArrowRightOnRectangleIcon } from './Icons';
+import { SearchIcon, ArrowRightOnRectangleIcon, HomeIcon } from './Icons';
 
 interface HeaderProps {
   onGoHome: () => void;
@@ -8,9 +8,10 @@ interface HeaderProps {
   searchQuery: string;
   onSearch: (query: string) => void;
   onLogout: () => void;
+  myAvatarUrl: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ onGoHome, onGoToProfile, searchQuery, onSearch, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ onGoHome, onGoToProfile, searchQuery, onSearch, onLogout, myAvatarUrl }) => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(searchQuery);
@@ -40,22 +41,27 @@ const Header: React.FC<HeaderProps> = ({ onGoHome, onGoToProfile, searchQuery, o
           </form>
         </div>
 
-        <div className="hidden sm:flex items-center space-x-2 space-x-reverse flex-shrink-0">
-          <button
+        <div className="hidden sm:flex items-center space-x-4 space-x-reverse flex-shrink-0">
+           <button
               onClick={onGoToProfile}
-              className="flex items-center space-x-2 space-x-reverse text-gray-700 font-semibold px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="block rounded-full hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 transition-all"
               aria-label="الملف الشخصي"
           >
-              <UserIcon className="w-5 h-5" />
-              <span>ملفي الشخصي</span>
+              <img src={myAvatarUrl} alt="ملف شخصي" className="w-10 h-10 rounded-full object-cover" />
+          </button>
+          <button
+              onClick={onGoHome}
+              className="text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="الصفحة الرئيسية"
+          >
+              <HomeIcon className="w-7 h-7" />
           </button>
           <button
               onClick={onLogout}
-              className="flex items-center space-x-2 space-x-reverse text-gray-700 font-semibold px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
+              className="text-gray-600 p-2 rounded-full hover:bg-red-50 hover:text-red-600 transition-colors"
               aria-label="تسجيل الخروج"
           >
-              <ArrowRightOnRectangleIcon className="w-5 h-5" />
-              <span>خروج</span>
+              <ArrowRightOnRectangleIcon className="w-7 h-7" />
           </button>
         </div>
       </div>
